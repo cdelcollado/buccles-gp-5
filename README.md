@@ -188,9 +188,29 @@ Característiques a replicar (estil Quantiloop/Korg):
 
 ---
 
-## 10. Decisions que cal prendre
+## 10. Decisions
+
+### ✅ Decisions preses (2026)
+
+| Decisió | Resposta |
+|---|---|
+| iOS | **No**. Només desktop (Chrome/Edge). |
+| Font d'àudio del looper | **GP‑5 USB** (interfície d'àudio USB). |
+| Configuració del Chocolate Plus | **Des de la nostra app** (no cal Cube Suite). |
+| Complexitat del looper | **1 pista primer**, iterar a 4. |
+| UI | **Vanilla TypeScript** (sense framework). |
+| Llibreria d'àudio | **Tone.js** (transport, scheduling, quantize). |
+
+### Preguntes originals (context)
 
 1. **iOS és un requisit?** (determina si cal una solució no‑web per al MIDI a iOS).
 2. **On passa l'àudio del looper**: capturar l'àudio del GP‑5 per USB (recomanat) o una altra font?
 3. **Mapeig del Chocolate Plus**: el configures des de Cube Suite (missatges fixes) o ho volem gestionar tot des de la nostra app?
 4. **Complexitat del looper**: 4 pistes + quantize és el punt de partida, o ho volem més simple primer?
+
+---
+
+## 11. Documentació
+
+- **[docs/plan.md](docs/plan.md)** — Pla d'implementació complet (fases, fitxers, convencions, riscos).
+- **[docs/fase-0.md](docs/fase-0.md)** — Progrés de la Fase 0 (bootstrap i prototip de viabilitat).

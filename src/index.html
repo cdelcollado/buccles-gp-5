@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ca">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>buccles-gp-5</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <h1>buccles-gp-5</h1>
+        <p class="subtitle">
+          Hub per controlar el Valeton GP-5 i el Chocolate Plus (M-VAVE)
+        </p>
+      </header>
+
+      <section id="connection-status" class="panel">
+        <h2>Estat de la connexió</h2>
+        <ul id="status-list" class="status-list"></ul>
+        <button id="btn-request-midi" class="btn btn-primary">
+          Activar MIDI
+        </button>
+        <button id="btn-request-audio" class="btn btn-primary">
+          Activar Àudio
+        </button>
+      </section>
+
+      <section id="midi-devices" class="panel">
+        <h2>Dispositius MIDI</h2>
+        <div class="device-columns">
+          <div>
+            <h3>Entrades</h3>
+            <ul id="midi-inputs" class="device-list"></ul>
+          </div>
+          <div>
+            <h3>Sortides</h3>
+            <ul id="midi-outputs" class="device-list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="midi-monitor" class="panel">
+        <h2>Monitor MIDI (debug)</h2>
+        <p class="hint">Prem botons del Chocolate Plus i veuràs els missatges aquí.</p>
+        <pre id="midi-log" class="monitor-log"></pre>
+        <button id="btn-clear-log" class="btn">Buida el log</button>
+      </section>
+
+      <section id="audio-probe" class="panel">
+        <h2>Prova d'àudio (GP-5)</h2>
+        <div class="audio-controls">
+          <label for="audio-input-select">Entrada d'àudio:</label>
+          <select id="audio-input-select"></select>
+          <button id="btn-monitor-audio" class="btn">Monitoritza l'entrada</button>
+        </div>
+        <div id="audio-status" class="audio-status"></div>
+      </section>
+    </div>
+
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>

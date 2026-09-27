@@ -1,0 +1,251 @@
+:root {
+  --bg: #14161a;
+  --bg-panel: #1e2228;
+  --bg-panel-alt: #262b33;
+  --text: #e6e8eb;
+  --text-muted: #9aa3ad;
+  --accent: #4f8cff;
+  --accent-hover: #3d78e6;
+  --success: #3ecf6e;
+  --warning: #f0b429;
+  --danger: #f2564b;
+  --border: #333a44;
+  --radius: 8px;
+  --mono: 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.app-header {
+  margin-bottom: 1.5rem;
+}
+
+.app-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 2rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.15rem;
+}
+
+.panel h3 {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.status-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-panel-alt);
+  border-radius: var(--radius);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.ok {
+  background: var(--success);
+}
+
+.status-dot.fail {
+  background: var(--danger);
+}
+
+.status-dot.warn {
+  background: var(--warning);
+}
+
+.device-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.device-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.device-list li {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.device-list li:last-child {
+  border-bottom: none;
+}
+
+.device-name {
+  font-weight: 600;
+}
+
+.device-manufacturer {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  margin-left: 0.5rem;
+}
+
+.monitor-log {
+  background: #0d0f12;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin: 0 0 0.75rem;
+}
+
+.monitor-log .msg-time {
+  color: var(--text-muted);
+}
+
+.monitor-log .msg-note {
+  color: #4fc3f7;
+}
+
+.monitor-log .msg-cc {
+  color: #aed581;
+}
+
+.monitor-log .msg-pc {
+  color: #ffb74d;
+}
+
+.monitor-log .msg-sysex {
+  color: #f06292;
+}
+
+.monitor-log .msg-other {
+  color: var(--text-muted);
+}
+
+.btn {
+  display: inline-block;
+  background: var(--bg-panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:hover {
+  background: #2e353f;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn + .btn {
+  margin-left: 0.5rem;
+}
+
+.audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.audio-controls select {
+  background: var(--bg-panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  min-width: 220px;
+}
+
+.audio-status {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.audio-status.active {
+  color: var(--success);
+}
+
+@media (max-width: 640px) {
+  .device-columns {
+    grid-template-columns: 1fr;
+  }
+}
