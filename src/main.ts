@@ -1,10 +1,13 @@
 // Entry point de l'aplicació. Inicialitza els mòduls i enllaça la UI.
-// Fase 0: prototip de viabilitat (MIDI + àudio).
+// Fase 0 (MIDI + àudio) i Fase 1 (controlador GP-5).
 
 import './style.css';
 import { MIDIManager } from './midi/midi-manager';
 import { MIDIMonitor } from './midi/midi-monitor';
 import { AudioManager } from './audio/audio-manager';
+import { GP5Controller } from './gp5/gp5-controller';
+import { GP5UI } from './gp5/gp5-ui';
+import { loadGP5State, saveGP5State } from './storage/persistence';
 import { byId, createStatusIndicator, el } from './ui/components';
 import type { MIDIInput, MIDIMessageEvent } from './midi/midi.types';
 
@@ -14,6 +17,13 @@ import type { MIDIInput, MIDIMessageEvent } from './midi/midi.types';
 
 const midiManager = new MIDIManager();
 const audioManager = new AudioManager({ onStatus: (s) => setAudioStatus(s) });
+const gp5Controller = new GP5Controller();
+const gp5UI = new GP5UI(byId<HTMLDivElement>('gp5-ui'), gp5Controller);
+
+// Persistència: desa l'estat del GP-5 quan canvia.
+gp5Controller.onPresetChange(() => saveGP5State(gp5Controller.getState()));
+gp5Controller.onModuleStateChange(() => saveGP5State(gp5Controller.getState()));
+gp5Controller.onTunerChange(() => saveGP5State(gp5Controller.getState()));
 
 // ---------------------------------------------------------------------------
 // Referències a la UI
@@ -106,6 +116,13 @@ function updateConnectionIndicators(): void {
   renderDeviceLists();
 }
 
+/** Sincronitza el controlador i la UI del GP-5 amb la selecció actual. */
+function syncGP5(): void {
+  const { gp5Output } = midiManager.selection;
+  gp5Controller.setOutput(gp5Output);
+  gp5UI.setConnected(gp5Output !== null);
+}
+
 // ---------------------------------------------------------------------------
 // Subscripció de missatges MIDI del Chocolate Plus
 // ---------------------------------------------------------------------------
@@ -130,6 +147,7 @@ function resubscribeMonitor(): void {
 midiManager.onChange(() => {
   updateConnectionIndicators();
   resubscribeMonitor();
+  syncGP5();
 });
 
 // ---------------------------------------------------------------------------
@@ -212,6 +230,10 @@ byId<HTMLButtonElement>('btn-monitor-audio').addEventListener('click', async () 
 
 async function init(): Promise<void> {
   updateConnectionIndicators();
+  syncGP5();
+
+  // Restaura l'estat desat del GP-5 (sense enviar CC al dispositiu).
+  gp5Controller.restoreState(loadGP5State());
 
   try {
     await refreshAudioInputs();

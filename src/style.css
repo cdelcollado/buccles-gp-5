@@ -244,8 +244,89 @@ body {
   color: var(--success);
 }
 
+/* --- Control GP-5 --- */
+
+.gp5-nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.gp5-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.gp5-preset {
+  padding: 0.5rem 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.gp5-preset.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.gp5-modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.gp5-module {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.gp5-module.active {
+  background: var(--success);
+  border-color: var(--success);
+  color: #0d0f12;
+}
+
+.gp5-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.gp5-tuner.active {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #0d0f12;
+}
+
+.gp5-volume-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.gp5-volume {
+  flex: 1;
+  max-width: 220px;
+  accent-color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @media (max-width: 640px) {
   .device-columns {
     grid-template-columns: 1fr;
+  }
+
+  .gp5-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }

@@ -12,7 +12,7 @@ App web per controlar un **Valeton GP-5** (USB MIDI + àudio) i un **Chocolate P
 |---|---|
 | iOS | **No**. Només desktop (Chrome/Edge). |
 | Font d'àudio del looper | **GP-5 USB** (interfície d'àudio USB). |
-| Configuració del Chocolate Plus | **Des de la nostra app** (no cal Cube Suite). |
+| Configuració del Chocolate Plus | **MIDI Learn** (l'app aprèn qualsevol missatge del pedal; no cal Cube Suite). |
 | Complexitat del looper | **1 pista primer**, iterar a 4. |
 | UI | **Vanilla TypeScript** (sense framework). |
 | Llibreria d'àudio | **Tone.js** (transport, scheduling, quantize). |
@@ -120,7 +120,7 @@ src/
 | 1.1 | Taula de mapeig CC | `src/gp5/gp5-mapping.ts` | Objecte TypeScript amb tots els CC del GP-5 (preset recall = CC#0, patch+/patch-, bank+/bank-, toggle blocs, afinador). Cada entrada: `{ cc: number, name: string, description: string, valueRange: [min, max] }` |
 | 1.2 | GP-5 Controller | `src/gp5/gp5-controller.ts` | Classe `GP5Controller` amb mètodes: `recallPreset(n: 1-100)`, `toggleBlock(block: string)`, `patchUp()`, `patchDown()`, `bankUp()`, `bankDown()`, `toggleTuner()`. Cada mètode envia el CC corresponent via `MIDIOutput.send()` |
 | 1.3 | Preset Grid UI | `src/gp5/gp5-ui.ts` | Graella de 100 botons (10×10), clic = recall preset. Preset actiu ressaltat. Navegació per bancs. |
-| 1.4 | Effect Chain UI | `src/gp5/gp5-ui.ts` | 9 blocs d'efecte en fila (amp, drive, mod, delay, reverb, EQ, cab, gate, vol). Toggle on/off amb indicador visual (color). |
+| 1.4 | Effect Chain UI | `src/gp5/gp5-ui.ts` | 10 mòduls d'efecte en fila (NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB). Toggle on/off amb indicador visual (color). |
 | 1.5 | Afinador | `src/gp5/gp5-ui.ts` | Botó "Tuner" que envia CC d'afinador. Estat visual (on/off). |
 | 1.6 | Persistència | `src/storage/persistence.ts` | `localStorage` per: preset actual, estat dels blocs. Càrrega a l'inici. |
 | 1.7 | Detecció automàtica | `src/midi/midi-manager.ts` | Match per subcadena al nom del port: "GP-5" → output, "Chocolate" / "M-VAVE" → input. Fallback: selector manual. |
@@ -252,5 +252,5 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3a  →  Fase 3b  →  Fase 3c  → 
 1. **Taula CC del GP-5**: el README diu que és al manual (pàg. ~40). Cal tenir el manual a mà per omplir `gp5-mapping.ts` correctament. Si no es troba, caldrà experimentació.
 2. **Latència del looper**: Web Audio té latència d'entrada. `latencyHint: "interactive"` i desactivar processament d'àudio hauria de ser suficient per practicar, però cal validar-ho amb el hardware real.
 3. **Noms de dispositius MIDI**: poden variar entre SO (Windows vs Linux vs Mac). La detecció per subcadena ha de ser flexible i tenir fallback manual.
-4. **Risc de brick del GP-5 per SysEx**: mai enviar SysEx no documentat. Només CC de la taula oficial.
+4. **Risc de brick del GP-5 per SysEx**: mai enviar SysEx no documentat. Només CC de la taula oficial (voes.be). El protocol SysEx del GP-5 usa encoding XOR/checksum; de moment fora d'abast.
 5. **Tone.js + Web MIDI**: cal assegurar-se que `Tone.Transport` i el Web MIDI clock no interfereixin. Són independents però cal coordinar el timing del quantize.

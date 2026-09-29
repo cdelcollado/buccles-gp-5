@@ -24,11 +24,12 @@ Tot funciona al navegador amb dues APIs estàndard: **Web MIDI API** i **Web Aud
 ### 2.1 Valeton GP‑5
 - **MIDI per USB‑C**: sí, class‑compliant (funciona Win/Mac/iOS/Android). *No* envia MIDI per Bluetooth, només per cable.
 - **Escolta al canal MIDI 1** (fix, no configurable).
-- **Presets**: es recorden amb **CC#0** (valor 1–100 = preset 1–100). *No* usa Program Change per presets (fet poc habitual).
-- **Blocs d'efecte** (drive, mod, delay, reverb, amp, EQ…): s'encenen/apaguen amb **CC** (valor 0 = bypass, 127 = on).
+- **Presets**: es recorden amb **CC#0** (valor 0–99 = preset 00–99). *No* usa Program Change per presets (fet poc habitual).
+- **Mòduls d'efecte** (10: NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB): s'encenen/apaguen amb **CC** (hipòtesi: 0 = off, 127 = on).
 - **Scroll** de patch/bank i **afinador**: també per CC (Patch+/Patch‑, Bank+/Bank‑).
 - També és **interfície d'àudio USB 2‑in/2‑out** → la guitarra processada es pot capturar al navegador per al looper.
-- ⚠️ **Cura amb SysEx**: hi ha casos documentats de GP‑5 "bricked" per rebre missatges MIDI mal interpretats com a SysEx de firmware. *Mai* enviar SysEx no documentat. La taula CC completa és al manual (pàg. ~40).
+- ⚠️ **Cura amb SysEx**: hi ha casos documentats de GP‑5 "bricked" per rebre missatges MIDI mal interpretats com a SysEx de firmware. *Mai* enviar SysEx no documentat. El GP‑5 té un protocol SysEx complet (amb **encoding XOR/checksum**) però de moment només fem servir CC per USB.
+- **Fonts**: taula CC oficial a <https://voes.be/midi-cc/valeton_gp5.html>; protocol SysEx i guies de connexió a <https://rvalladares.com/gp5/>.
 
 ### 2.2 Chocolate Plus (M‑VAVE)
 - Controlador de peu de **4 botons**, configurables.
@@ -117,15 +118,18 @@ Això es resol amb **escenes/bancs** commutables des de la mateixa app (o amb un
 
 ## 5. Detall dels missatges MIDI (GP‑5)
 
-Resum del que cal implementar (detall exacte al manual, pàg. ~40):
+Resum del que cal implementar (font: <https://voes.be/midi-cc/valeton_gp5.html>):
 
-| Funció | Tipus | Canal | Valor |
-|---|---|---|---|
-| Recall preset N | CC | 1 | CC#0, valor N (1–100) |
-| Patch + / Patch − | CC | 1 | CC dedicat |
-| Bank + / Bank − | CC | 1 | CC dedicat |
-| Toggle bloc (drive/mod/delay/rev…) | CC | 1 | 0 = bypass, 127 = on |
-| Afinador | CC | 1 | CC dedicat |
+| Funció | CC# | Valor |
+|---|---|---|
+| Recall preset N | 0 | 0–99 (preset 00–99) |
+| Patch volume | 7 | 0–100 |
+| Bank − / Bank + | 22 / 23 | trigger |
+| Patch − / Patch + | 24 / 25 | trigger |
+| Patch − / + (song list) | 29 / 30 | trigger |
+| Mòdul on/off (NR/PRE/DST/N→S/AMP/CAB/EQ/MOD/DLY/RVB) | 48–57 | 0 = off, 127 = on (hipòtesi) |
+| Afinador | 58 | 0 = off, 127 = on |
+| CTL | 69 | trigger |
 
 > Recomanació: **no enviar res que no estigui documentat** (risc de brick per SysEx). Només CC de la taula oficial.
 
@@ -196,7 +200,7 @@ Característiques a replicar (estil Quantiloop/Korg):
 |---|---|
 | iOS | **No**. Només desktop (Chrome/Edge). |
 | Font d'àudio del looper | **GP‑5 USB** (interfície d'àudio USB). |
-| Configuració del Chocolate Plus | **Des de la nostra app** (no cal Cube Suite). |
+| Configuració del Chocolate Plus | **MIDI Learn** (l'app aprèn qualsevol missatge del pedal; no cal configurar-lo). |
 | Complexitat del looper | **1 pista primer**, iterar a 4. |
 | UI | **Vanilla TypeScript** (sense framework). |
 | Llibreria d'àudio | **Tone.js** (transport, scheduling, quantize). |
@@ -214,3 +218,4 @@ Característiques a replicar (estil Quantiloop/Korg):
 
 - **[docs/plan.md](docs/plan.md)** — Pla d'implementació complet (fases, fitxers, convencions, riscos).
 - **[docs/fase-0.md](docs/fase-0.md)** — Progrés de la Fase 0 (bootstrap i prototip de viabilitat).
+- **[docs/fase-1.md](docs/fase-1.md)** — Progrés de la Fase 1 (MVP controlador GP-5).
