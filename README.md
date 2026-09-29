@@ -84,7 +84,7 @@ The app does **two things with the same Chocolate Plus input**:
 
 This is resolved with **scenes/banks** switchable from the app itself (or with a dedicated "Looper mode" button).
 
-> **Current decision**: the Chocolate Plus is now **dedicated to the looper**. The GP-5 is controlled from the on-screen UI. The scene-based architecture is kept so the hybrid (GP-5 + looper) can be added later as a small addition.
+> **Current decision**: the Chocolate Plus is now **dedicated to the looper** (see [docs/phase-3a-looper.md](docs/phase-3a-looper.md)). The GP-5 is controlled from the on-screen UI. The scene-based architecture is kept so the hybrid (GP-5 + looper) can be added later as a small addition.
 
 ---
 
@@ -149,6 +149,8 @@ Features to replicate (Quantiloop/Korg style):
 
 **Latency consideration**: Web Audio has non-negligible input latency. For casual practice/live it is acceptable if we request `latencyHint: "interactive"` and disable `echoCancellation`/`noiseSuppression`. For studio-grade needs, a native app (or a direct audio interface) would be better. Must be validated in the prototype.
 
+> **See [docs/phase-3a-looper.md](docs/phase-3a-looper.md)** for the current, more detailed looper plan (2 tracks, Chocolate Plus dedicated).
+
 ---
 
 ## 7. Risks and limitations
@@ -173,7 +175,7 @@ Features to replicate (Quantiloop/Korg style):
 - **Phase 1 — GP-5 control MVP**
   - Presets UI + module toggles + tuner. Mapping persistence.
 
-- **Phase 2 — Router Chocolate Plus → GP-5** *(deferred)*
+- **Phase 2 — Router Chocolate Plus → GP-5** *(deferred — see [docs/phase-3a-looper.md](docs/phase-3a-looper.md))*
   - Configurable mapping and scenes.
 
 - **Phase 3 — Looper**
@@ -221,3 +223,4 @@ Features to replicate (Quantiloop/Korg style):
 - [docs/plan.md](docs/plan.md) — Full implementation plan (phases, files, conventions, risks).
 - [docs/phase-0.md](docs/phase-0.md) — Phase 0 progress (bootstrap and feasibility prototype).
 - [docs/phase-1.md](docs/phase-1.md) — Phase 1 progress (GP-5 controller MVP).
+- [docs/phase-3a-looper.md](docs/phase-3a-looper.md) — Looper MVP plan (2 tracks, Chocolate Plus dedicated).
