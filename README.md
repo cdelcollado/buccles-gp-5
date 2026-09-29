@@ -1,221 +1,223 @@
 # buccles-gp-5
 
-App web per controlar un **Valeton GP‑5** connectat per USB i el **Chocolate Plus (M‑VAVE)** com a controlador MIDI, amb un **looper** integrat (estil Quantiloop / Korg).
+Web app to control a **Valeton GP-5** connected via USB and the **Chocolate Plus (M-VAVE)** as a MIDI controller, with a built-in **looper** (Quantiloop/Korg-style).
 
 ---
 
-# Pla: app web per controlar el Valeton GP‑5 i el Chocolate Plus + looper
+# Plan: web app to control the Valeton GP-5 and the Chocolate Plus + looper
 
-## 1. Resum de la idea
+## 1. Idea summary
 
-Una PWA (o simple pàgina web servida per HTTPS) que actua de **"hub central"**:
+A PWA (or a simple HTTPS-served web page) that acts as the **"central hub"**:
 
-- Controla el **GP‑5** per USB (presets, efectes, afinador…).
-- Llegeix el **Chocolate Plus** com a controlador MIDI.
-- Fa de **router/translator** entre el Chocolate Plus i el GP‑5.
-- Incorpora un **looper** (tipus Quantiloop/Korg) que el Chocolate Plus dispara per MIDI, i que grava l'àudio de la guitarra que entra pel GP‑5 (que també és interfície d'àudio USB).
+- Controls the **GP-5** over USB (presets, effects, tuner…).
+- Reads the **Chocolate Plus** as a MIDI controller.
+- Acts as a **router/translator** between the Chocolate Plus and the GP-5.
+- Includes a **looper** (Quantiloop/Korg-style) triggered by the Chocolate Plus over MIDI, recording the guitar audio coming in through the GP-5 (which is also a USB audio interface).
 
-Tot funciona al navegador amb dues APIs estàndard: **Web MIDI API** i **Web Audio API**.
+Everything runs in the browser with two standard APIs: **Web MIDI API** and **Web Audio API**.
 
 ---
 
-## 2. Viabilitat tècnica (què hem confirmat)
+## 2. Technical feasibility (what we've confirmed)
 
-### 2.1 Valeton GP‑5
-- **MIDI per USB‑C**: sí, class‑compliant (funciona Win/Mac/iOS/Android). *No* envia MIDI per Bluetooth, només per cable.
-- **Escolta al canal MIDI 1** (fix, no configurable).
-- **Presets**: es recorden amb **CC#0** (valor 0–99 = preset 00–99). *No* usa Program Change per presets (fet poc habitual).
-- **Mòduls d'efecte** (10: NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB): s'encenen/apaguen amb **CC** (hipòtesi: 0 = off, 127 = on).
-- **Scroll** de patch/bank i **afinador**: també per CC (Patch+/Patch‑, Bank+/Bank‑).
-- També és **interfície d'àudio USB 2‑in/2‑out** → la guitarra processada es pot capturar al navegador per al looper.
-- ⚠️ **Cura amb SysEx**: hi ha casos documentats de GP‑5 "bricked" per rebre missatges MIDI mal interpretats com a SysEx de firmware. *Mai* enviar SysEx no documentat. El GP‑5 té un protocol SysEx complet (amb **encoding XOR/checksum**) però de moment només fem servir CC per USB.
-- **Fonts**: taula CC oficial a <https://voes.be/midi-cc/valeton_gp5.html>; protocol SysEx i guies de connexió a <https://rvalladares.com/gp5/>.
+### 2.1 Valeton GP-5
+- **MIDI over USB-C**: yes, class-compliant (works on Win/Mac/iOS/Android). It does *not* send MIDI over Bluetooth, only over cable.
+- **Listens on MIDI channel 1** (fixed, not configurable).
+- **Presets**: recalled with **CC#0** (value 0–99 = preset 00–99). It does *not* use Program Change for presets (unusual).
+- **Effect modules** (10: NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB): toggled on/off with **CC** (hypothesis: 0 = off, 127 = on).
+- **Patch/bank scroll** and **tuner**: also via CC (Patch+/Patch−, Bank+/Bank−).
+- It is also a **2-in/2-out USB audio interface** → the processed guitar can be captured in the browser for the looper.
+- ⚠️ **Careful with SysEx**: there are documented cases of GP-5 units being "bricked" by receiving MIDI messages misinterpreted as firmware SysEx. *Never* send undocumented SysEx. The GP-5 has a full SysEx protocol (with **XOR/checksum encoding**) but for now we only use CC over USB.
+- **Sources**: official CC table at <https://voes.be/midi-cc/valeton_gp5.html>; SysEx protocol and connection guides at <https://rvalladares.com/gp5/>.
 
-### 2.2 Chocolate Plus (M‑VAVE)
-- Controlador de peu de **4 botons**, configurables.
-- Envia **PC, CC, Note On/Off i SysEx** (i té port USB host, TRS MIDI i BT).
-- **USB MIDI class‑compliant** → el navegador el veu com a dispositiu MIDI d'entrada.
-- Es configura amb l'app **Cube Suite** (o directament des de la nostra app, si volem).
-- Nota: la connexió sense fils és la part menys fiable (BT no estàndard en algunes versions). **Recomano USB** per a aquesta app.
+### 2.2 Chocolate Plus (M-VAVE)
+- A **4-button** foot controller, configurable.
+- Sends **PC, CC, Note On/Off and SysEx** (and has a USB host port, TRS MIDI and BT).
+- **Class-compliant USB MIDI** → the browser sees it as a MIDI input device.
+- Configured with the **Cube Suite** app (or directly from our app, if we wanted to).
+- Note: the wireless connection is the least reliable part (non-standard BT on some versions). **USB recommended** for this app.
 
-### 2.3 Navegadors (Web MIDI API)
-| Navegador | Web MIDI | Notes |
+### 2.3 Browsers (Web MIDI API)
+| Browser | Web MIDI | Notes |
 |---|---|---|
-| Chrome / Edge / Opera | ✅ sí | Recomanat. Requereix **HTTPS** o `localhost`. SysEx demana permís extra `sysex: true`. |
-| Firefox 108+ | ✅ sí (parcial) | Demana instal·lar un "permission add‑on". No a Firefox Android. |
-| **Safari (mac/iOS)** | ❌ **no** | Cap versió el suporta. A iOS, fins i tot Chrome/Edge fan servir WebKit → tampoc. |
+| Chrome / Edge / Opera | ✅ yes | Recommended. Requires **HTTPS** or `localhost`. SysEx needs the extra `sysex: true` permission. |
+| Firefox 108+ | ✅ yes (partial) | Requires installing a "permission add-on". Not on Firefox Android. |
+| **Safari (mac/iOS)** | ❌ **no** | No version supports it. On iOS, even Chrome/Edge use WebKit → also not supported. |
 
-> Això és la **limitació clau**: el teu referent "Quantiloop per iOS" funciona a iOS perquè és una app nativa. Una app *web* **no podrà llegir MIDI a iOS/Safari**. El **looper amb Web Audio sí que funciona a iOS**, però sense control MIDI per peu (hauries de tocar botons a la pantalla).
+> This is the **key limitation**: your "Quantiloop for iOS" reference works on iOS because it's a native app. A *web* app **cannot read MIDI on iOS/Safari**. The **looper with Web Audio does work on iOS**, but without foot MIDI control (you'd have to tap on-screen buttons).
 
-### 2.4 Looper amb Web Audio API
-- Suport universal (inclou Safari). Gravació i reproducció de loops, multi‑pista, overdub, undo, quantize, BPM. Totalment factible.
-
----
-
-## 3. Arquitectura
-
-### Topologia de connexions (tota al PC)
-
-```
-[Guitarra] → [GP-5]  ──USB (MIDI + ÀUDIO)──┐
-                                             ├──→ [PC / Navegador = APP]
-[Chocolate Plus] ──USB (MIDI)───────────────┘
-```
-
-El navegador és l'element central. Hi ha dues lògiques paral·leles:
-
-**Flux A — Control del GP‑5:**
-```
-Chocolate Plus (CC/PC) ─→ App (routing/translator) ─→ GP-5 (CC#0, blocs…)
-App UI (botons/presets) ─────────────────────────────→ GP-5
-```
-
-**Flux B — Looper:**
-```
-GP-5 (àudio USB, guitarra processada) ─→ Web Audio (gravació) ─→ Looper
-Chocolate Plus (CC/Note) ─→ App ─→ control del looper (rec/play/overdub/undo…)
-Looper ─→ sortida àudio (altaveus PC o retorn al GP-5)
-```
-
-### Punt clau de disseny
-L'app fa **dues coses amb la mateixa entrada del Chocolate Plus**:
-1. **Mode "Control GP‑5"**: els botons del Chocolate Plus disparen CC cap al GP‑5 (o canvien preset, toggles, afinador).
-2. **Mode "Looper"**: els mateixos botons (o un "layer" diferent) disparen funcions del looper.
-
-Això es resol amb **escenes/bancs** commutables des de la mateixa app (o amb un botó dedicat "Mode looper").
+### 2.4 Looper with Web Audio API
+- Universal support (including Safari). Loop recording/playback, multi-track, overdub, undo, quantize, BPM. Entirely feasible.
 
 ---
 
-## 4. Mòduls de l'aplicació
+## 3. Architecture
+
+### Connection topology (all on the PC)
+
+```
+[Guitar] → [GP-5]  ──USB (MIDI + AUDIO)──┐
+                                          ├──→ [PC / Browser = APP]
+[Chocolate Plus] ──USB (MIDI)─────────────┘
+```
+
+The browser is the central element. There are two parallel logics:
+
+**Flow A — GP-5 control:**
+```
+Chocolate Plus (CC/PC) ─→ App (routing/translator) ─→ GP-5 (CC#0, modules…)
+App UI (buttons/presets) ────────────────────────────→ GP-5
+```
+
+**Flow B — Looper:**
+```
+GP-5 (USB audio, processed guitar) ─→ Web Audio (recording) ─→ Looper
+Chocolate Plus (CC/Note) ─→ App ─→ looper control (rec/play/overdub/undo…)
+Looper ─→ audio output (PC speakers or back to the GP-5)
+```
+
+### Key design point
+The app does **two things with the same Chocolate Plus input**:
+1. **"GP-5 control" mode**: the Chocolate Plus buttons fire CC toward the GP-5 (or change preset, toggles, tuner).
+2. **"Looper" mode**: the same buttons (or a different "layer") fire looper functions.
+
+This is resolved with **scenes/banks** switchable from the app itself (or with a dedicated "Looper mode" button).
+
+> **Current decision**: the Chocolate Plus is now **dedicated to the looper**. The GP-5 is controlled from the on-screen UI. The scene-based architecture is kept so the hybrid (GP-5 + looper) can be added later as a small addition.
+
+---
+
+## 4. Application modules
 
 1. **Device Manager (Web MIDI)**
    - `navigator.requestMIDIAccess({ sysex: true })`
-   - Llista dispositius d'entrada i sortida, detecta "GP‑5" i "Chocolate Plus" pel nom.
-   - Gestiona `statechange` (connectar/desconnectar en calent).
-   - Mostra si falta HTTPS o si el navegador no suporta MIDI.
+   - Lists input and output devices, detects "GP-5" and "Chocolate Plus" by name.
+   - Handles `statechange` (hot-plug).
+   - Shows if HTTPS is missing or the browser doesn't support MIDI.
 
-2. **GP‑5 Controller**
-   - Recall de preset (CC#0 + valor), scroll patch/bank, toggle de blocs d'efecte, afinador.
-   - UI visual (els 100 presets, cadena de 9 blocs, indicadors on/off).
-   - Taula de mapeig CC en un arxiu JSON (fàcil de mantenir quan surti el manual).
+2. **GP-5 Controller**
+   - Preset recall (CC#0 + value), patch/bank scroll, effect module toggles, tuner.
+   - Visual UI (the 100 presets, a chain of 10 modules, on/off indicators).
+   - CC mapping table in a JSON file (easy to maintain once the manual is out).
 
 3. **MIDI Router / Translator**
-   - Regles: "entrada Chocolate Plus → CC X → reenviar a GP‑5 com CC Y".
-   - Mapeig configurable per l'usuari (mapa "learn" o manual).
-   - Commutació d'escenes (GP‑5 vs Looper).
+   - Rules: "Chocolate Plus input → CC X → forward to GP-5 as CC Y".
+   - User-configurable mapping ("learn" or manual).
+   - Scene switching (GP-5 vs Looper).
 
 4. **Looper (Web Audio)**
-   - Multi‑pista (p. ex. 4), overdub, undo/redo, clear per pista, stop all.
-   - **Quantize** a compàs/béat amb un BPM (master clock), sincronia amb el MIDI.
-   - Metrònom opcional i "count‑in".
-   - Entrada d'àudio via `getUserMedia` del GP‑5 (o qualsevol entrada).
+   - Multi-track (e.g. 4), overdub, undo/redo, per-track clear, stop all.
+   - **Quantize** to bar/beat with a BPM (master clock), MIDI sync.
+   - Optional metronome and "count-in".
+   - Audio input via `getUserMedia` from the GP-5 (or any input).
 
-5. **Persistència**
-   - Desar configuracions de routing, mapeigs i BPM a `localStorage`/`IndexedDB`.
-   - Exportar/importar configs (JSON).
+5. **Persistence**
+   - Save routing configs, mappings and BPM to `localStorage`/`IndexedDB`.
+   - Export/import configs (JSON).
 
 ---
 
-## 5. Detall dels missatges MIDI (GP‑5)
+## 5. GP-5 MIDI message details
 
-Resum del que cal implementar (font: <https://voes.be/midi-cc/valeton_gp5.html>):
+Summary of what to implement (source: <https://voes.be/midi-cc/valeton_gp5.html>):
 
-| Funció | CC# | Valor |
+| Function | CC# | Value |
 |---|---|---|
 | Recall preset N | 0 | 0–99 (preset 00–99) |
 | Patch volume | 7 | 0–100 |
 | Bank − / Bank + | 22 / 23 | trigger |
 | Patch − / Patch + | 24 / 25 | trigger |
 | Patch − / + (song list) | 29 / 30 | trigger |
-| Mòdul on/off (NR/PRE/DST/N→S/AMP/CAB/EQ/MOD/DLY/RVB) | 48–57 | 0 = off, 127 = on (hipòtesi) |
-| Afinador | 58 | 0 = off, 127 = on |
+| Module on/off (NR/PRE/DST/N→S/AMP/CAB/EQ/MOD/DLY/RVB) | 48–57 | 0 = off, 127 = on (hypothesis) |
+| Tuner | 58 | 0 = off, 127 = on |
 | CTL | 69 | trigger |
 
-> Recomanació: **no enviar res que no estigui documentat** (risc de brick per SysEx). Només CC de la taula oficial.
+> Recommendation: **never send anything undocumented** (SysEx brick risk). Only CC from the official table.
 
 ---
 
-## 6. El looper en detall
+## 6. The looper in detail
 
-Característiques a replicar (estil Quantiloop/Korg):
+Features to replicate (Quantiloop/Korg style):
 
-- **4 pistes sincronitzades** a un BPM.
-- Operacions per pista: `Record`, `Play/Stop`, `Overdub`, `Undo`, `Clear`, i `Stop all`.
-- **Quantize**: comença/atura el loop al següent límit de compàs (evita desfase).
-- **MIDI mapping**: cada operació ↔ un CC/PC del Chocolate Plus.
-- Flux d'àudio: `getUserMedia` del GP‑5 → nodes Web Audio → buffer de loop → sortida.
+- **4 synced tracks** at a BPM.
+- Per-track operations: `Record`, `Play/Stop`, `Overdub`, `Undo`, `Clear`, and `Stop all`.
+- **Quantize**: start/stop the loop at the next bar boundary (avoids drift).
+- **MIDI mapping**: each operation ↔ a Chocolate Plus CC/PC.
+- Audio flow: `getUserMedia` from the GP-5 → Web Audio nodes → loop buffer → output.
 
-**Consideració de latència**: Web Audio té latència d'entrada no negligible. Per a practicar/live casual és acceptable si demanem `latencyHint: "interactive"` i desactivem `echoCancellation`/`noiseSuppression`. Per a exigència d'estudi, una app nativa (o una interfície d'àudio directa) aniria millor. Cal validar‑ho en el prototip.
-
----
-
-## 7. Riscos i limitacions
-
-1. **Safari/iOS sense Web MIDI** → el looper funciona a iOS, però sense control per peu. Si iOS és un requisit, cal replantejar (app nativa / Web MIDI Browser de tercers / BLE MIDI fora del navegador).
-2. **HTTPS obligatori** → cal servit sobre HTTPS (o `localhost` per desenvolupar). Sense certificat, l'API no apareix.
-3. **GP‑5 només canal 1 i CC per presets** → cal respectar‑ho; no usa PC per presets.
-4. **Risc de brick per SysEx** → mai enviar SysEx no documentat.
-5. **Latència del looper** → cal mesurar‑la al prototip; possible feina extra (lookahead scheduling).
-6. **Bluetooth del Chocolate Plus poc fiable** → usar USB.
-7. **Noms de dispositius** no estandarditzats → detecció robusta (per subcadena) i selecció manual com a fallback.
+**Latency consideration**: Web Audio has non-negligible input latency. For casual practice/live it is acceptable if we request `latencyHint: "interactive"` and disable `echoCancellation`/`noiseSuppression`. For studio-grade needs, a native app (or a direct audio interface) would be better. Must be validated in the prototype.
 
 ---
 
-## 8. Roadmap proposat
+## 7. Risks and limitations
 
-- **Fase 0 — Prototip de viabilitat (1–2 dies)**
-  - Pàgina que llista dispositius Web MIDI i mostra els missatges entrants del Chocolate Plus.
-  - Prova de reenviament d'un CC al GP‑5 (recall de preset) des de la consola.
-  - Capturar àudio del GP‑5 amb `getUserMedia` i comprovar latència.
-
-- **Fase 1 — MVP control GP‑5**
-  - UI de presets + toggle de blocs + afinador. Persistència del mapeig.
-
-- **Fase 2 — Router Chocolate Plus → GP‑5**
-  - Mapeig configurable i escenes.
-
-- **Fase 3 — Looper**
-  - 1 pista → 4 pistes, overdub, undo, quantize, metrònom.
-
-- **Fase 4 — Polish / PWA**
-  - Offline, export/import de configs, theming.
+1. **Safari/iOS without Web MIDI** → the looper works on iOS, but without foot control. If iOS is a requirement, rethink (native app / third-party Web MIDI Browser / BLE MIDI outside the browser).
+2. **HTTPS required** → must be served over HTTPS (or `localhost` for development). Without a certificate, the API doesn't appear.
+3. **GP-5 only on channel 1 and CC for presets** → must be respected; it doesn't use PC for presets.
+4. **SysEx brick risk** → never send undocumented SysEx.
+5. **Looper latency** → must be measured in the prototype; possible extra work (lookahead scheduling).
+6. **Chocolate Plus Bluetooth unreliable** → use USB.
+7. **Device names** not standardized → robust detection (by substring) and manual selection as fallback.
 
 ---
 
-## 9. Stack recomanat
+## 8. Proposed roadmap
 
-- **Vanilla JS/TS + Vite** (n'hi ha prou; no cal framework pesat).
-- **WebMidi.js** o **JZZ** per abstraure el Web MIDI (gestió de dispositius i missatges més còmoda). Alternativa: Web MIDI natiu, que és prou senzill.
-- **Tone.js** per al looper (tempo, transport, quantize, scheduling) — tot i que també es pot fer amb Web Audio pur si volem menys dependències.
-- **lit / Preact** si vols components UI lleugers.
-- Servir amb HTTPS (Vite + mkcert en local; Netlify/Vercel/Cloudflare Pages en producció).
+- **Phase 0 — Feasibility prototype (1–2 days)**
+  - Page listing Web MIDI devices and showing incoming Chocolate Plus messages.
+  - Test forwarding a CC to the GP-5 (preset recall) from the console.
+  - Capture GP-5 audio with `getUserMedia` and check latency.
+
+- **Phase 1 — GP-5 control MVP**
+  - Presets UI + module toggles + tuner. Mapping persistence.
+
+- **Phase 2 — Router Chocolate Plus → GP-5** *(deferred)*
+  - Configurable mapping and scenes.
+
+- **Phase 3 — Looper**
+  - 2 tracks → 4 tracks, overdub, undo, quantize, metronome.
+
+- **Phase 4 — Polish / PWA**
+  - Offline, export/import configs, theming.
+
+---
+
+## 9. Recommended stack
+
+- **Vanilla JS/TS + Vite** (enough; no heavy framework needed).
+- **WebMidi.js** or **JZZ** to abstract Web MIDI (easier device/message handling). Alternative: native Web MIDI, which is simple enough.
+- **Tone.js** for the looper (tempo, transport, quantize, scheduling) — though it can also be done with pure Web Audio if we want fewer dependencies.
+- **lit / Preact** if you want lightweight UI components.
+- Serve over HTTPS (Vite + mkcert locally; Netlify/Vercel/Cloudflare Pages in production).
 
 ---
 
 ## 10. Decisions
 
-### ✅ Decisions preses (2026)
+### ✅ Decisions made (2026)
 
-| Decisió | Resposta |
+| Decision | Answer |
 |---|---|
-| iOS | **No**. Només desktop (Chrome/Edge). |
-| Font d'àudio del looper | **GP‑5 USB** (interfície d'àudio USB). |
-| Configuració del Chocolate Plus | **MIDI Learn** (l'app aprèn qualsevol missatge del pedal; no cal configurar-lo). |
-| Complexitat del looper | **1 pista primer**, iterar a 4. |
-| UI | **Vanilla TypeScript** (sense framework). |
-| Llibreria d'àudio | **Tone.js** (transport, scheduling, quantize). |
+| iOS | **No**. Desktop only (Chrome/Edge). |
+| Looper audio source | **GP-5 USB** (USB audio interface). |
+| Chocolate Plus config | **MIDI Learn** (the app learns any message from the pedal; no need to configure it). |
+| Looper complexity | **2 tracks first** (MVP), Chocolate Plus dedicated to the looper. |
+| UI | **Vanilla TypeScript** (no framework). |
+| Audio library | **Tone.js** (transport, scheduling, quantize). |
 
-### Preguntes originals (context)
+### Original questions (context)
 
-1. **iOS és un requisit?** (determina si cal una solució no‑web per al MIDI a iOS).
-2. **On passa l'àudio del looper**: capturar l'àudio del GP‑5 per USB (recomanat) o una altra font?
-3. **Mapeig del Chocolate Plus**: el configures des de Cube Suite (missatges fixes) o ho volem gestionar tot des de la nostra app?
-4. **Complexitat del looper**: 4 pistes + quantize és el punt de partida, o ho volem més simple primer?
+1. **Is iOS a requirement?** (determines whether a non-web solution is needed for MIDI on iOS).
+2. **Where does the looper audio come from**: capture GP-5 audio over USB (recommended) or another source?
+3. **Chocolate Plus mapping**: configure it from Cube Suite (fixed messages) or manage everything from our app?
+4. **Looper complexity**: is 4 tracks + quantize the starting point, or do we want something simpler first?
 
 ---
 
-## 11. Documentació
+## 11. Documentation
 
-- **[docs/plan.md](docs/plan.md)** — Pla d'implementació complet (fases, fitxers, convencions, riscos).
-- **[docs/fase-0.md](docs/fase-0.md)** — Progrés de la Fase 0 (bootstrap i prototip de viabilitat).
-- **[docs/fase-1.md](docs/fase-1.md)** — Progrés de la Fase 1 (MVP controlador GP-5).
+- [docs/plan.md](docs/plan.md) — Full implementation plan (phases, files, conventions, risks).
+- [docs/phase-0.md](docs/phase-0.md) — Phase 0 progress (bootstrap and feasibility prototype).
+- [docs/phase-1.md](docs/phase-1.md) — Phase 1 progress (GP-5 controller MVP).
