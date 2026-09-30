@@ -7,7 +7,15 @@ import { MIDIMonitor } from './midi/midi-monitor';
 import { AudioManager } from './audio/audio-manager';
 import { GP5Controller } from './gp5/gp5-controller';
 import { GP5UI } from './gp5/gp5-ui';
-import { loadGP5State, saveGP5State } from './storage/persistence';
+import { LooperEngine } from './looper/looper-engine';
+import { LooperUI } from './looper/looper-ui';
+import { LooperMapping } from './looper/looper-mapping';
+import {
+  loadGP5State,
+  loadLooperState,
+  saveGP5State,
+  saveLooperState,
+} from './storage/persistence';
 import { byId, createStatusIndicator, el } from './ui/components';
 import type { MIDIInput, MIDIMessageEvent } from './midi/midi.types';
 
@@ -35,6 +43,26 @@ const midiOutputsList = byId<HTMLUListElement>('midi-outputs');
 const midiLog = byId<HTMLPreElement>('midi-log');
 const audioInputSelect = byId<HTMLSelectElement>('audio-input-select');
 const audioStatusDiv = byId<HTMLDivElement>('audio-status');
+
+// --- Looper (Fase 3a) ---
+
+const savedLooper = loadLooperState();
+const looperEngine = new LooperEngine();
+if (savedLooper.bpm != null) {
+  looperEngine.setBpm(savedLooper.bpm);
+}
+const looperMapping = new LooperMapping(savedLooper.bindings);
+const looperUI = new LooperUI({
+  container: byId<HTMLDivElement>('looper-ui'),
+  engine: looperEngine,
+  mapping: looperMapping,
+  onEnable: () => looperEngine.init(audioManager, audioInputSelect.value || undefined),
+});
+
+// Persistència: desa BPM i mapeig del looper quan canvien.
+looperEngine.onChange((s) => {
+  saveLooperState({ bpm: s.bpm, bindings: looperMapping.getBindings() });
+});
 
 const monitor = new MIDIMonitor({ logElement: midiLog });
 
@@ -129,6 +157,23 @@ function syncGP5(): void {
 
 let subscribedInput: MIDIInput | null = null;
 
+/** Gestiona un missatge MIDI del Chocolate Plus: Learn o acció del looper. */
+function handleLooperMidi(data: Uint8Array): void {
+  if (looperMapping.isLearning) {
+    const action = looperMapping.completeLearning(data);
+    if (action) {
+      saveLooperState({ bpm: looperEngine.getBpm(), bindings: looperMapping.getBindings() });
+      looperUI.refreshBindings();
+    }
+    return;
+  }
+
+  const action = looperMapping.match(data);
+  if (action) {
+    looperEngine.dispatch(action);
+  }
+}
+
 function resubscribeMonitor(): void {
   if (subscribedInput) {
     subscribedInput.onmidimessage = null;
@@ -140,6 +185,7 @@ function resubscribeMonitor(): void {
     subscribedInput = input;
     input.onmidimessage = (event: MIDIMessageEvent) => {
       monitor.log(event.data);
+      handleLooperMidi(event.data);
     };
   }
 }

@@ -24,6 +24,11 @@ export class AudioManager {
     return this.monitoring;
   }
 
+  /** Retorna el flux d'àudio obert (o null si encara no s'ha obert). */
+  getStream(): MediaStream | null {
+    return this.stream;
+  }
+
   /** Llista els dispositius d'entrada d'àudio disponibles. */
   async listInputDevices(): Promise<MediaDeviceInfo[]> {
     if (!navigator.mediaDevices?.enumerateDevices) {

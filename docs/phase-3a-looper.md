@@ -1,6 +1,29 @@
 # Phase 3a — Looper MVP (2 tracks)
 
-**Status**: planned (not started)
+**Status**: implemented (pending hardware validation)
+
+## What was built
+
+- `src/looper/looper-clock.ts` — BPM + bar grid via `Tone.Transport`; schedules callbacks at the
+  next bar boundary with the exact audio time.
+- `src/looper/looper-track.ts` — per-track audio (mono), layers, undo stack, looping playback.
+- `src/looper/looper-mapping.ts` — MIDI Learn + default PC mappings for the 4 pedal buttons.
+- `src/looper/looper-engine.ts` — owns the 2 tracks, the capture `ScriptProcessorNode`, master
+  loop length and phase; dispatches looper actions.
+- `src/looper/looper-ui.ts` — transport, BPM, track cards and MIDI Learn UI.
+- `src/audio/audio-manager.ts` — added `getStream()` (share the GP-5 input with the looper).
+- `src/storage/persistence.ts` — persist BPM + bindings to `localStorage`.
+
+Timing model: the first loop sets the master length (whole number of bars) and phase; all edges
+snap to bar boundaries. Capture is sample-gated by the `ScriptProcessorNode` (mono downmix;
+stereo deferred to 3c).
+
+## Notes for hardware validation
+
+- The default pedal bindings are **guesses** (Program Change, ch1, data1 0–3). Rebind via
+  MIDI Learn if the Chocolate Plus sends CC/Note instead.
+- `clear` has no default pedal button (only 4 buttons); assign it via MIDI Learn or use the UI.
+- Validate input latency and quantize feel with the GP-5 and the Chocolate Plus over USB.
 
 ## Goal
 
