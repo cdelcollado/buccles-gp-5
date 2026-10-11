@@ -1,49 +1,49 @@
-# Fase 1 — MVP controlador GP-5
+# Phase 1 — GP-5 controller MVP
 
-**Estat**: ✅ Implementat (pendent de validació amb hardware)
+**Status**: ✅ Implemented (pending validation with the hardware)
 
-## Objectiu
+## Goal
 
-Controlar el GP-5 des de la UI: presets, mòduls d'efecte, afinador i volum, tot per USB amb CC.
+Control the GP-5 from the UI: presets, effect modules, tuner and volume, all over USB with CCs.
 
-## Què s'ha fet
+## What was done
 
-### Fitxers nous
+### New files
 ```
 src/gp5/
-├── gp5-mapping.ts       # Taula CC del GP-5 (font: voes.be) + constants de valors
-├── gp5-controller.ts    # GP5Controller: envia CC, manté estat local, emet canvis
-└── gp5-ui.ts            # GP5UI: graella 10×10, cadena de 10 mòduls, afinador, volum
+├── gp5-mapping.ts       # GP-5 CC table (source: voes.be) + value constants
+├── gp5-controller.ts    # GP5Controller: sends CCs, keeps local state, emits changes
+└── gp5-ui.ts            # GP5UI: 10×10 grid, chain of 10 modules, tuner, volume
 src/storage/
-└── persistence.ts       # loadGP5State / saveGP5State a localStorage
+└── persistence.ts       # loadGP5State / saveGP5State in localStorage
 ```
 
-### Funcionalitats implementades
-- **Graella de presets 00–99** (CC#0, valor 0–99). Preset actiu ressaltat.
-- **Cadena de 10 mòduls** (NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB) amb toggle on/off (CC#48–57).
-- **Navegació** patch± / bank± (CC#22–25).
-- **Afinador** (CC#58) i **volum de patch** (CC#7, 0–100).
-- **Persistència** de preset, mòduls i afinador a `localStorage`, restaurada a l'inici sense reenviar CC.
-- Controls desactivats quan el GP-5 no està detectat (reactiu a `statechange`).
+### Implemented features
+- **Preset grid 00–99** (CC#0, value 0–99). Active preset highlighted.
+- **Chain of 10 modules** (NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB) with on/off toggle (CC#48–57).
+- **Navigation** patch± / bank± (CC#22–25).
+- **Tuner** (CC#58) and **patch volume** (CC#7, 0–100).
+- **Persistence** of preset, modules and tuner in `localStorage`, restored at start without re-sending CCs.
+- Controls are disabled when the GP-5 is not detected (reactive to `statechange`).
 
-### Semàntica on/off (hipòtesi)
-- `0 = off`, `127 = on` per a mòduls i afinador (`MODULE_OFF_VALUE` / `MODULE_ON_VALUE`).
-- Controls "trigger" (patch±/bank±/ctl) envien `127` (`TRIGGER_VALUE`).
+### On/off semantics (hypothesis)
+- `0 = off`, `127 = on` for modules and tuner (`MODULE_OFF_VALUE` / `MODULE_ON_VALUE`).
+- "Trigger" controls (patch±/bank±/ctl) send `127` (`TRIGGER_VALUE`).
 
-## Com validar-ho amb el hardware (pendent)
+## How to validate with the hardware (pending)
 
-1. Obrir **http://localhost:5173/** a Chrome/Edge i connectar el GP-5 per USB.
-2. Clicar un preset de la graella → el GP-5 ha de canviar de patch.
-3. Clicar un mòdul (p. ex. AMP) → ha d'encendre/apagar l'efecte. **Confirmar que `127` = on i `0` = off** (o si fa toggle amb qualsevol valor).
-4. Afinador → ha d'entrar/sortir de l'afinador.
-5. Volum (CC#7) → ha de canviar el volum del patch.
+1. Open **http://localhost:5173/** in Chrome/Edge and connect the GP-5 via USB.
+2. Click a preset in the grid → the GP-5 must change patch.
+3. Click a module (e.g. AMP) → it must turn the effect on/off. **Confirm that `127` = on and `0` = off** (or whether it toggles with any value).
+4. Tuner → must enter/leave tuner mode.
+5. Volume (CC#7) → must change the patch volume.
 
-## Notes i riscos
+## Notes and risks
 
-- Els CC del GP-5 són **unidireccionals**: l'estat local de l'app és una suposició, no una lectura del dispositiu. Si el GP-5 canvia d'estat per altres mitjans, la UI pot quedar desincronitzada.
-- La **navegació patch±** no actualitza el preset actiu a la graella (no sabem el resultat). Només la graella manté el preset ressaltat fiable.
-- Si la semàntica on/off no fos `0/127`, s'ajusta a `gp5-mapping.ts` (constants úniques).
+- The GP-5 CCs are **one-way**: the app's local state is an assumption, not a read from the device. If the GP-5 changes state by other means, the UI can get out of sync.
+- **Patch±** navigation does not update the active preset in the grid (we do not know the result). Only the grid keeps the highlighted preset reliably.
+- If the on/off semantics are not `0/127`, adjust them in `gp5-mapping.ts` (single constants).
 
-## Següent pas
+## Next step
 
-**Fase 2 — Router MIDI**: Chocolate Plus → GP-5 amb **MIDI Learn**, mapeig configurable i escenes.
+**Phase 2 — MIDI router**: Chocolate Plus → GP-5 with **MIDI Learn**, configurable mapping and scenes.

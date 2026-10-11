@@ -1,7 +1,7 @@
-// Controlador d'alt nivell del GP-5: envia CC per canviar presets, mòduls, etc.
+// High-level GP-5 controller: sends CCs to change presets, modules, etc.
 //
-// Els CC del GP-5 són unidireccionals (no es pot llegir l'estat del dispositiu),
-// així que aquesta classe en manté un estat local i l'emet als subscriptors.
+// GP-5 CCs are one-way (the device state cannot be read back),
+// so this class keeps a local state and emits it to subscribers.
 
 import type { MIDIOutput } from '../midi/midi.types';
 import {
@@ -20,20 +20,20 @@ export type ModuleStateChangeCallback = (id: GP5ModuleId, on: boolean) => void;
 export type PresetChangeCallback = (preset: number) => void;
 export type TunerChangeCallback = (on: boolean) => void;
 
-/** Estat complet del controlador (per a persistència). */
+/** Full controller state (for persistence). */
 export interface GP5State {
   currentPreset: number | null;
   moduleState: Record<GP5ModuleId, boolean>;
   tunerOn: boolean;
 }
 
-/** Limita un valor dins d'un rang tancat [min, max]. */
+/** Clamps a value within the closed range [min, max]. */
 function clamp(value: number, [min, max]: readonly [number, number]): number {
   return Math.min(max, Math.max(min, value));
 }
 
 /**
- * Classe que encapsula l'enviament de CC al GP-5.
+ * Class that encapsulates sending CCs to the GP-5.
  */
 export class GP5Controller {
   private output: MIDIOutput | null = null;
@@ -46,9 +46,9 @@ export class GP5Controller {
   private presetListeners = new Set<PresetChangeCallback>();
   private tunerListeners = new Set<TunerChangeCallback>();
 
-  // --- Selecció del dispositiu ---
+  // --- Device selection ---
 
-  /** Assigna la sortida MIDI del GP-5 (o null si es desconnecta). */
+  /** Sets the GP-5 MIDI output (or null when it is disconnected). */
   setOutput(output: MIDIOutput | null): void {
     this.output = output;
   }
@@ -57,7 +57,7 @@ export class GP5Controller {
     return this.output !== null;
   }
 
-  // --- Subscripció ---
+  // --- Subscriptions ---
 
   onModuleStateChange(cb: ModuleStateChangeCallback): () => void {
     this.moduleListeners.add(cb);
@@ -74,7 +74,7 @@ export class GP5Controller {
     return () => this.tunerListeners.delete(cb);
   }
 
-  // --- Estat ---
+  // --- State ---
 
   getState(): GP5State {
     return {
@@ -97,8 +97,8 @@ export class GP5Controller {
   }
 
   /**
-   * Restaura l'estat desat sense enviar cap CC (per no "spamejar" el dispositiu
-   * en arrencar). Només actualitza l'estat local i n'emet el canvi a la UI.
+   * Restores the saved state without sending any CC (so the device is not flooded
+   * on start-up). Only updates the local state and emits the change to the UI.
    */
   restoreState(state: Partial<GP5State>): void {
     if (state.currentPreset != null) {
@@ -117,9 +117,9 @@ export class GP5Controller {
     }
   }
 
-  // --- Accions ---
+  // --- Actions ---
 
-  /** Canvia al preset indicat (0-99). */
+  /** Switches to the given preset (0-99). */
   recallPreset(preset: number): void {
     const p = clamp(preset, PATCH_RANGE);
     this.sendCC(GP5_CC.patchRecall, p);
@@ -127,19 +127,19 @@ export class GP5Controller {
     this.emitPresetChange(p);
   }
 
-  /** Ajusta el volum de patch (0-100). */
+  /** Sets the patch volume (0-100). */
   setPatchVolume(volume: number): void {
     this.sendCC(GP5_CC.patchVolume, clamp(volume, PATCH_VOLUME_RANGE));
   }
 
-  /** Activa/desactiva un mòdul d'efecte. */
+  /** Turns an effect module on/off. */
   setModule(id: GP5ModuleId, on: boolean): void {
     this.sendCC(this.moduleCC(id), on ? MODULE_ON_VALUE : MODULE_OFF_VALUE);
     this.moduleState.set(id, on);
     this.emitModuleChange(id, on);
   }
 
-  /** Commuta l'estat d'un mòdul d'efecte. */
+  /** Toggles the state of an effect module. */
   toggleModule(id: GP5ModuleId): void {
     this.setModule(id, !this.getModuleState(id));
   }
@@ -160,14 +160,14 @@ export class GP5Controller {
     this.sendCC(GP5_CC.bankDown, TRIGGER_VALUE);
   }
 
-  /** Activa/desactiva l'afinador. */
+  /** Turns the tuner on/off. */
   setTuner(on: boolean): void {
     this.sendCC(GP5_CC.tuner, on ? MODULE_ON_VALUE : MODULE_OFF_VALUE);
     this.tunerOn = on;
     this.emitTunerChange(on);
   }
 
-  /** Commuta l'afinador. */
+  /** Toggles the tuner. */
   toggleTuner(): void {
     this.setTuner(!this.tunerOn);
   }
@@ -185,7 +185,7 @@ export class GP5Controller {
       console.warn('[GP5] No hi ha cap sortida GP-5 seleccionada.');
       return;
     }
-    // Status de Control Change al canal 1: 0xB0 | (canal - 1).
+    // Control Change status on channel 1: 0xB0 | (channel - 1).
     const status = 0xb0 | (GP5_CHANNEL - 1);
     this.output.send([status, cc, value]);
   }

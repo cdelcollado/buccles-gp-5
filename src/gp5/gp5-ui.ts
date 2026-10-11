@@ -1,12 +1,13 @@
-// UI del controlador GP-5: navegació, graella de presets, cadena de mòduls,
-// afinador i volum.
+// GP-5 controller UI: navigation, preset grid, module chain,
+// tuner and volume.
 
 import { el } from '../ui/components';
+import { t, onLocaleChange, type MessageKey } from '../i18n';
 import { GP5_MODULES, PATCH_RANGE, PATCH_VOLUME_RANGE, type GP5ModuleId } from './gp5-mapping';
 import type { GP5Controller } from './gp5-controller';
 
 /**
- * Renderitza i gestiona la vista de control del GP-5 dins d'un contenidor.
+ * Renders and manages the GP-5 control view inside a container.
  */
 export class GP5UI {
   private container: HTMLElement;
@@ -17,6 +18,7 @@ export class GP5UI {
   private tunerButton: HTMLButtonElement | null = null;
   private volumeInput: HTMLInputElement | null = null;
   private interactive: (HTMLButtonElement | HTMLInputElement)[] = [];
+  private connected = false;
 
   constructor(container: HTMLElement, controller: GP5Controller) {
     this.container = container;
@@ -26,24 +28,30 @@ export class GP5UI {
     controller.onPresetChange((n) => this.updatePreset(n));
     controller.onModuleStateChange((id, on) => this.updateModule(id, on));
     controller.onTunerChange((on) => this.updateTuner(on));
+    onLocaleChange(() => this.render());
 
-    // Comença desactivat fins que main.ts confirmi la connexió del GP-5.
+    // Starts disabled until main.ts confirms the GP-5 connection.
     this.setConnected(false);
   }
 
-  /** Activa o desactiva tots els controls segons si el GP-5 està connectat. */
+  /** Enables or disables all controls depending on whether the GP-5 is connected. */
   setConnected(connected: boolean): void {
+    this.connected = connected;
     for (const ctrl of this.interactive) {
       ctrl.disabled = !connected;
     }
   }
 
-  // --- Renderitzat ---
+  // --- Rendering ---
 
+  /** Builds the UI in the current language and re-applies the controller state. */
   private render(): void {
     this.container.innerHTML = '';
+    this.presetButtons = [];
+    this.moduleButtons.clear();
+    this.interactive = [];
 
-    // Navegació de patch/banc.
+    // Patch/bank navigation.
     const nav = el('div', 'gp5-nav');
     nav.append(
       this.button('◀◀ Bank', () => this.controller.bankDown(), 'Bank −'),
@@ -53,24 +61,25 @@ export class GP5UI {
     );
     this.container.append(nav);
 
-    // Graella de presets 00-99.
+    // Preset grid 00-99.
     const grid = el('div', 'gp5-grid');
     for (let i = PATCH_RANGE[0]; i <= PATCH_RANGE[1]; i++) {
       const label = String(i).padStart(2, '0');
-      const btn = this.button(label, () => this.controller.recallPreset(i), `Preset ${label}`);
+      const btn = this.button(label, () => this.controller.recallPreset(i), t('gp5.preset', { n: label }));
       btn.classList.add('gp5-preset');
       this.presetButtons.push(btn);
       grid.append(btn);
     }
     this.container.append(grid);
 
-    // Cadena de mòduls d'efecte.
+    // Effect module chain.
     const modules = el('div', 'gp5-modules');
     for (const mod of GP5_MODULES) {
+      const description = t(`gp5.module.${mod.id}` as MessageKey);
       const btn = this.button(
         mod.name,
         () => this.controller.toggleModule(mod.id),
-        `${mod.name} — ${mod.description}`,
+        `${mod.name} — ${description}`,
       );
       btn.classList.add('gp5-module');
       this.moduleButtons.set(mod.id, btn);
@@ -78,14 +87,14 @@ export class GP5UI {
     }
     this.container.append(modules);
 
-    // Afinador i volum.
+    // Tuner and volume.
     const controls = el('div', 'gp5-controls');
 
-    this.tunerButton = this.button('Afinador', () => this.controller.toggleTuner(), 'Afinador on/off');
+    this.tunerButton = this.button(t('gp5.tuner'), () => this.controller.toggleTuner(), t('gp5.tunerTitle'));
     this.tunerButton.classList.add('gp5-tuner');
     controls.append(this.tunerButton);
 
-    const volumeLabel = el('label', 'gp5-volume-label', 'Volum');
+    const volumeLabel = el('label', 'gp5-volume-label', t('gp5.volume'));
     volumeLabel.htmlFor = 'gp5-volume';
 
     this.volumeInput = el('input', 'gp5-volume');
@@ -100,9 +109,22 @@ export class GP5UI {
 
     controls.append(volumeLabel, this.volumeInput);
     this.container.append(controls);
+
+    this.restoreVisualState();
+    this.setConnected(this.connected);
   }
 
-  // --- Actualització d'estat ---
+  /** Re-marks the preset, modules and tuner from the controller (after a re-render). */
+  private restoreVisualState(): void {
+    const state = this.controller.getState();
+    if (state.currentPreset !== null) this.updatePreset(state.currentPreset);
+    for (const mod of GP5_MODULES) {
+      this.updateModule(mod.id, state.moduleState[mod.id] ?? false);
+    }
+    this.updateTuner(state.tunerOn);
+  }
+
+  // --- State updates ---
 
   private updatePreset(preset: number): void {
     this.presetButtons.forEach((btn, i) => {

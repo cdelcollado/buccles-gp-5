@@ -1,5 +1,6 @@
-// Gestió del Web MIDI: accés, llista de dispositius i detecció del GP-5 i el Chocolate Plus.
+// Web MIDI management: access, device list and detection of the GP-5 and the Chocolate Plus.
 
+import { t } from '../i18n';
 import type {
   MIDIAccess,
   MIDIInput,
@@ -8,28 +9,28 @@ import type {
   MIDIMessageEvent,
 } from './midi.types';
 
-/** Noms que identifiquen el GP-5 (per subcadena, sense distingir majúscules). */
+/** Names that identify the GP-5 (substring match, case-insensitive). */
 const GP5_PATTERNS = ['gp-5', 'gp5', 'valeton'];
 
-/** Noms que identifiquen el Chocolate Plus / M-VAVE (per subcadena). */
+/** Names that identify the Chocolate Plus / M-VAVE (substring match). */
 const CHOCOLATE_PATTERNS = ['chocolate', 'm-vave', 'mvave'];
 
 export interface DeviceSelection {
-  /** Entrada MIDI detectada com a Chocolate Plus. */
+  /** MIDI input detected as the Chocolate Plus. */
   chocolateInput: MIDIInput | null;
-  /** Sortida MIDI detectada com a GP-5. */
+  /** MIDI output detected as the GP-5. */
   gp5Output: MIDIOutput | null;
 }
 
 export type ConnectionChangeCallback = (selection: DeviceSelection) => void;
 
 /**
- * Classe que encapsula l'accés al Web MIDI i la detecció de dispositius.
+ * Class that wraps Web MIDI access and device detection.
  */
 export class MIDIManager {
   private access: MIDIAccess | null = null;
 
-  /** Callbacks registrats per a canvis de connexió. */
+  /** Callbacks registered for connection changes. */
   private listeners = new Set<ConnectionChangeCallback>();
 
   private current: DeviceSelection = {
@@ -58,12 +59,12 @@ export class MIDIManager {
   }
 
   /**
-   * Demana accés al MIDI i detecta els dispositius coneguts.
-   * Llença un Error si el navegador no ho suporta o l'usuari ho denega.
+   * Requests MIDI access and detects the known devices.
+   * Throws an Error if the browser does not support it or the user denies access.
    */
   async enable(): Promise<void> {
     if (typeof navigator.requestMIDIAccess !== 'function') {
-      throw new Error('Aquest navegador no suporta Web MIDI. Fes servir Chrome o Edge.');
+      throw new Error(t('error.midiUnsupported'));
     }
 
     this.access = await navigator.requestMIDIAccess({ sysex: false });
@@ -75,7 +76,7 @@ export class MIDIManager {
     this.detectDevices();
   }
 
-  /** Torna a escanejar els dispositius i actualitza la selecció. */
+  /** Rescans the devices and updates the selection. */
   detectDevices(): void {
     if (!this.access) return;
 
@@ -86,18 +87,18 @@ export class MIDIManager {
     this.notifyListeners();
   }
 
-  /** Registra un callback que s'executa quan canvia la selecció de dispositius. */
+  /** Registers a callback that runs when the device selection changes. */
   onChange(callback: ConnectionChangeCallback): () => void {
     this.listeners.add(callback);
     return () => this.listeners.delete(callback);
   }
 
-  /** Subscriu un handler als missatges MIDI d'un input concret. */
+  /** Subscribes a handler to the MIDI messages of a given input. */
   listen(input: MIDIInput, handler: (event: MIDIMessageEvent) => void): void {
     input.onmidimessage = handler;
   }
 
-  /** Envia bytes MIDI a una sortida concreta. */
+  /** Sends MIDI bytes to a given output. */
   send(output: MIDIOutput, data: number[] | Uint8Array): void {
     output.send(data);
   }
@@ -123,7 +124,7 @@ export class MIDIManager {
   private handleStateChange(event: MIDIConnectionEvent): void {
     const port = event.port;
     console.log(`[MIDI] statechange: ${port.name} (${port.type}) → ${port.state}`);
-    // Re-escaneja: un dispositiu s'ha connectat o desconnectat.
+    // Rescan: a device was connected or disconnected.
     this.detectDevices();
   }
 

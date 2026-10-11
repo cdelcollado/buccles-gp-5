@@ -1,12 +1,12 @@
-// Pista del looper: manté l'àudio gravat (mono), les capes, l'undo i la reproducció.
+// Looper track: holds the recorded audio (mono), the layers, undo and playback.
 //
-// Simplificació d'aquesta fase: àudio MONO (downmix estèreo → mono). L'estèreo
-// i els controls per pista (volum/mute/solo) queden per a la Fase 3c.
+// Simplification for this phase: MONO audio (stereo downmix → mono). Stereo
+// and per-track controls (volume/mute/solo) are left for Phase 3c.
 
 export type TrackId = 'A' | 'B';
 export type TrackState = 'empty' | 'recording' | 'playing' | 'overdubbing' | 'stopped';
 
-/** Retalla o estén (amb silenci) un buffer fins a `length`. */
+/** Trims or extends (with silence) a buffer up to `length`. */
 function fit(buffer: Float32Array<ArrayBuffer>, length: number): Float32Array<ArrayBuffer> {
   const out = new Float32Array(length);
   out.set(buffer.subarray(0, Math.min(length, buffer.length)));
@@ -16,7 +16,7 @@ function fit(buffer: Float32Array<ArrayBuffer>, length: number): Float32Array<Ar
 export class LooperTrack {
   readonly id: TrackId;
   state: TrackState = 'empty';
-  /** Nombre de capes compromeses (per a la UI i l'undo). */
+  /** Number of committed layers (for the UI and undo). */
   layerCount = 0;
 
   private context: BaseAudioContext;
@@ -28,7 +28,7 @@ export class LooperTrack {
   private source: AudioBufferSourceNode | null = null;
   private gain: GainNode;
 
-  // Buffer de captura en curs (creixent).
+  // Capture buffer in progress (growing).
   private captureBuf = new Float32Array(0);
   private captureLen = 0;
 
@@ -44,13 +44,13 @@ export class LooperTrack {
     return this.master !== null;
   }
 
-  // --- Captura ---
+  // --- Capture ---
 
   resetCapture(): void {
     this.captureLen = 0;
   }
 
-  /** Afegeix una mostra (downmix estèreo → mono). */
+  /** Adds a sample (stereo downmix → mono). */
   pushSample(left: number, right: number): void {
     if (this.captureLen >= this.captureBuf.length) {
       const next = new Float32Array(Math.max(this.captureBuf.length * 2, 4096));
@@ -60,14 +60,14 @@ export class LooperTrack {
     this.captureBuf[this.captureLen++] = (left + right) * 0.5;
   }
 
-  /** Retorna una còpia exacta del que s'ha capturat fins ara. */
+  /** Returns an exact copy of what has been captured so far. */
   captureResult(): Float32Array<ArrayBuffer> {
     return this.captureBuf.slice(0, this.captureLen);
   }
 
-  // --- Commit de gravació / overdub ---
+  // --- Recording / overdub commit ---
 
-  /** Grava el buffer capturat com a capa inicial de la pista. */
+  /** Records the captured buffer as the track's first layer. */
   commitRecording(lengthSamples: number, captured: Float32Array<ArrayBuffer>): void {
     this.master = fit(captured, lengthSamples);
     this.lengthSamples = lengthSamples;
@@ -75,7 +75,7 @@ export class LooperTrack {
     this.layerCount = 1;
   }
 
-  /** Barreja el buffer capturat (una volta) sobre el master. */
+  /** Mixes the captured buffer (one pass) onto the master. */
   mixOverdub(captured: Float32Array<ArrayBuffer>): void {
     if (!this.master) return;
     this.undoStack.push(this.master.slice());
@@ -87,7 +87,7 @@ export class LooperTrack {
     this.layerCount += 1;
   }
 
-  /** Desfà l'última capa. Retorna false si no hi havia res a desfer. */
+  /** Undoes the last layer. Returns false if there was nothing to undo. */
   undo(): boolean {
     const prev = this.undoStack.pop();
     if (!prev) return false;
@@ -106,9 +106,9 @@ export class LooperTrack {
     this.state = 'empty';
   }
 
-  // --- Reproducció ---
+  // --- Playback ---
 
-  /** (Re)inicia la reproducció en bucle a partir de `startTime` (context time). */
+  /** (Re)starts looped playback from `startTime` (context time). */
   startPlayback(startTime: number): void {
     if (!this.master) return;
     this.stop();
@@ -128,7 +128,7 @@ export class LooperTrack {
     this.source = source;
   }
 
-  /** Atura la reproducció (amb un petit fade per evitar clics). */
+  /** Stops playback (with a short fade to avoid clicks). */
   stop(): void {
     if (!this.source) return;
     const source = this.source;
@@ -142,7 +142,7 @@ export class LooperTrack {
     try {
       source.stop(t + 0.02);
     } catch {
-      /* ja estava aturada */
+      /* already stopped */
     }
   }
 

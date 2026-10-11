@@ -1,17 +1,17 @@
-// Mapeig MIDI → accions del looper (MIDI Learn).
+// MIDI mapping → looper actions (MIDI Learn).
 
 export type LooperAction = 'recordOverdub' | 'toggleAll' | 'undo' | 'clear' | 'focusNext';
 
-/** Missatge MIDI que dispara una acció (status byte + dades). */
+/** MIDI message that triggers an action (status byte + data). */
 export interface MIDITrigger {
-  /** Byte d'estat complet (command + canal). */
+  /** Full status byte (command + channel). */
   status: number;
   data1: number;
-  /** Absent per a Program Change. */
+  /** Absent for Program Change. */
   data2?: number;
 }
 
-/** Descripció llegible d'un trigger per a la UI. */
+/** Human-readable description of a trigger for the UI. */
 export function describeTrigger(t: MIDITrigger): string {
   const command = t.status & 0xf0;
   const channel = (t.status & 0x0f) + 1;
@@ -22,14 +22,14 @@ export function describeTrigger(t: MIDITrigger): string {
   return `0x${t.status.toString(16)} #${t.data1} ${ch}`;
 }
 
-/** Compara un missatge rebut amb un trigger. S'activa amb "press", no amb release. */
+/** Compares a received message with a trigger. Fires on press, not on release. */
 export function matchesTrigger(data: Uint8Array, trigger: MIDITrigger): boolean {
   if (data.length < 2) return false;
   if (data[0] !== trigger.status) return false;
   if (data[1] !== trigger.data1) return false;
-  if (trigger.data2 === undefined) return true; // PC: qualsevol cop = press
+  if (trigger.data2 === undefined) return true; // PC: every message = press
   const value = data.length > 2 ? data[2] : 0;
-  return value > 0; // CC/Note: valor > 0 = press
+  return value > 0; // CC/Note: value > 0 = press
 }
 
 export const LOOPER_ACTIONS: readonly LooperAction[] = [
@@ -40,19 +40,11 @@ export const LOOPER_ACTIONS: readonly LooperAction[] = [
   'focusNext',
 ];
 
-export const ACTION_LABELS: Record<LooperAction, string> = {
-  recordOverdub: 'Rec / Overdub (pista enfocada)',
-  toggleAll: 'Play / Stop (totes)',
-  undo: 'Undo (pista enfocada)',
-  clear: 'Clear (pista enfocada)',
-  focusNext: 'Canvia pista (A↔B)',
-};
-
 /**
- * Triggers per defecte: Program Change al canal 1, botons 1–4 del Chocolate Plus
- * (0xC0 amb data1 0..3). Són una HIPÒTESI — si el pedal envia altres missatges
- * (CC, Note…), usa el MIDI Learn per sobreescriure'ls. `clear` no té botó per
- * defecte (el Chocolate Plus té 4 botons): s'assigna via MIDI Learn o UI.
+ * Default triggers: Program Change on channel 1, Chocolate Plus buttons 1–4
+ * (0xC0 with data1 0..3). These are a HYPOTHESIS: if the pedal sends other messages
+ * (CC, Note…), use MIDI Learn to override them. `clear` has no default button
+ * (the Chocolate Plus has 4 buttons): assign it via MIDI Learn or the UI.
  */
 export function defaultTriggers(): Record<LooperAction, MIDITrigger | null> {
   return {
@@ -100,7 +92,7 @@ export class LooperMapping {
     this.learning = null;
   }
 
-  /** Captura un missatge i l'associa a l'acció en aprenentatge. Retorna l'acció apresa o null. */
+  /** Captures a message and binds it to the action being learned. Returns the learned action or null. */
   completeLearning(data: Uint8Array): LooperAction | null {
     if (this.learning === null) return null;
     if (data.length < 2) return null;
@@ -115,7 +107,7 @@ export class LooperMapping {
     return action;
   }
 
-  /** Retorna l'acció que dispara aquest missatge, o null. */
+  /** Returns the action triggered by this message, or null. */
   match(data: Uint8Array): LooperAction | null {
     for (const action of LOOPER_ACTIONS) {
       const trigger = this.bindings[action];

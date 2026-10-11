@@ -1,5 +1,5 @@
-// Persistència a localStorage. Fase 1: estat del GP-5 (preset + mòduls + afinador).
-// (La Fase 4 generalitzarà això amb export/import de tota la configuració.)
+// Persistence in localStorage. Phase 1: GP-5 state (preset + modules + tuner).
+// (Phase 4 will generalise this with export/import of the whole configuration.)
 
 import type { GP5State } from '../gp5/gp5-controller';
 import type { LooperAction, MIDITrigger } from '../looper/looper-mapping';
@@ -7,13 +7,13 @@ import type { LooperAction, MIDITrigger } from '../looper/looper-mapping';
 const STORAGE_KEY = 'buccles-gp5:gp5-state';
 const LOOPER_STORAGE_KEY = 'buccles-gp5:looper-state';
 
-/** Estat persistent del looper (BPM + mapeig MIDI). */
+/** Persistent looper state (BPM + MIDI mapping). */
 export interface LooperState {
   bpm: number;
   bindings: Partial<Record<LooperAction, MIDITrigger | null>>;
 }
 
-/** Carrega l'estat desat del GP-5 (o {} si no n'hi ha). */
+/** Loads the saved GP-5 state (or {} if there is none). */
 export function loadGP5State(): Partial<GP5State> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -25,7 +25,7 @@ export function loadGP5State(): Partial<GP5State> {
   }
 }
 
-/** Desa l'estat actual del GP-5. */
+/** Saves the current GP-5 state. */
 export function saveGP5State(state: GP5State): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -34,7 +34,7 @@ export function saveGP5State(state: GP5State): void {
   }
 }
 
-/** Carrega l'estat desat del looper (o {} si no n'hi ha). */
+/** Loads the saved looper state (or {} if there is none). */
 export function loadLooperState(): Partial<LooperState> {
   try {
     const raw = localStorage.getItem(LOOPER_STORAGE_KEY);
@@ -46,7 +46,7 @@ export function loadLooperState(): Partial<LooperState> {
   }
 }
 
-/** Desa l'estat actual del looper. */
+/** Saves the current looper state. */
 export function saveLooperState(state: LooperState): void {
   try {
     localStorage.setItem(LOOPER_STORAGE_KEY, JSON.stringify(state));

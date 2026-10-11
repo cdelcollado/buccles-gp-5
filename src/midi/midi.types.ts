@@ -1,22 +1,22 @@
-// Tipus per a la Web MIDI API, que no estan al lib estàndard de TypeScript.
+// Types for the Web MIDI API, which are not in TypeScript's standard lib.
 
 export type MIDIPortType = 'input' | 'output';
 export type MIDIPortConnectionState = 'open' | 'closed' | 'pending';
 export type MIDIPortDeviceState = 'connected' | 'disconnected';
 
-/** Missatge MIDI entrant desglossat en els seus components. */
+/** Incoming MIDI message split into its components. */
 export interface ParsedMIDIMessage {
-  /** Bytes originals del missatge. */
+  /** Original message bytes. */
   data: Uint8Array;
-  /** Byte d'estat (conté el tipus de missatge i el canal). */
+  /** Status byte (contains the message type and the channel). */
   status: number;
-  /** Tipus de missatge (0x8 noteoff, 0x9 noteon, 0xB CC, 0xC PC, …). */
+  /** Message type (0x8 note off, 0x9 note on, 0xB CC, 0xC PC, …). */
   command: number;
-  /** Canal MIDI (1-16). */
+  /** MIDI channel (1-16). */
   channel: number;
-  /** Data byte 1 (nota, número de CC, número de PC…). */
+  /** Data byte 1 (note, CC number, PC number…). */
   data1: number;
-  /** Data byte 2 (velocitat, valor de CC…). Pot ser undefined per PC. */
+  /** Data byte 2 (velocity, CC value…). Undefined for PC. */
   data2?: number;
 }
 
