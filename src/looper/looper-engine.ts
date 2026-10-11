@@ -1,4 +1,4 @@
-// Motor del looper: orquestra les 2 pistes, la captura d'àudio, la quantize i el mix.
+// Looper engine: orchestrates the 2 tracks, audio capture, quantisation and the mix.
 
 import * as Tone from 'tone';
 import { LooperClock } from './looper-clock';
@@ -17,7 +17,7 @@ export interface TrackSnapshot {
 export interface LooperSnapshot {
   ready: boolean;
   bpm: number;
-  /** True quan el BPM queda fixat (ja s'ha gravat el primer loop). */
+  /** True when the BPM is locked (the first loop has already been recorded). */
   bpmLocked: boolean;
   focused: TrackId;
   tracks: Record<TrackId, TrackSnapshot>;
@@ -26,12 +26,12 @@ export interface LooperSnapshot {
 const OTHER: Record<TrackId, TrackId> = { A: 'B', B: 'A' };
 
 /**
- * Motor del looper.
+ * Looper engine.
  *
- * Model de temps: el primer loop defineix la longitud mestra (un nombre enter de
- * compassos) i la fase. Totes les pistes comparteixen aquesta longitud i s'alineen
- * als límits de compàs que marca Tone.Transport. La captura és mostrejada amb un
- * ScriptProcessorNode per tenir límits exactes (sense deriva).
+ * Timing model: the first loop defines the master length (a whole number of
+ * bars) and the phase. All tracks share this length and align
+ * to the bar boundaries set by Tone.Transport. Capture is sampled with a
+ * ScriptProcessorNode to get exact boundaries (no drift).
  */
 export class LooperEngine {
   private clock = new LooperClock();
@@ -41,7 +41,7 @@ export class LooperEngine {
 
   private masterLengthSamples: number | null = null;
 
-  // Estat de captura gestionat pel processador d'àudio.
+  // Capture state managed by the audio processor.
   private sampleOrigin: number | null = null;
   private processedSamples = 0;
   private capturing: LooperTrack | null = null;
@@ -53,13 +53,13 @@ export class LooperEngine {
 
   private listeners = new Set<(s: LooperSnapshot) => void>();
 
-  // --- Inicialització ---
+  // --- Initialisation ---
 
   get isReady(): boolean {
     return this.context !== null;
   }
 
-  /** Obre l'entrada d'àudio, arrenca Tone i munta el graf. Cal un gest d'usuari. */
+  /** Opens the audio input, starts Tone and builds the graph. Requires a user gesture. */
   async init(audioManager: AudioManager, deviceId?: string): Promise<void> {
     const stream = audioManager.getStream() ?? (await audioManager.openInput(deviceId));
     await this.clock.start();
@@ -73,8 +73,8 @@ export class LooperEngine {
     const muteGain = ctx.createGain();
     muteGain.gain.value = 0;
 
-    // La ruta d'entrada alimenta el capturador, però no passa directe als altaveus
-    // (el muteGain evita doble monitoratge). El que se sent és el mix de les pistes.
+    // The input path feeds the capturer but is not routed straight to the speakers
+    // (muteGain avoids double monitoring). What you hear is the mix of the tracks.
     inputSource.connect(captureNode);
     captureNode.connect(muteGain);
     muteGain.connect(ctx.destination);
@@ -90,14 +90,14 @@ export class LooperEngine {
     this.emit();
   }
 
-  // --- Estat / subscripció ---
+  // --- State / subscription ---
 
   getBpm(): number {
     return this.clock.getBpm();
   }
 
   setBpm(bpm: number): void {
-    if (this.masterLengthSamples !== null) return; // BPM bloquejat un cop gravat
+    if (this.masterLengthSamples !== null) return; // BPM locked once something has been recorded
     this.clock.setBpm(bpm);
     this.emit();
   }
@@ -134,7 +134,7 @@ export class LooperEngine {
     return () => this.listeners.delete(cb);
   }
 
-  // --- Accions (cridades des de la UI o el mapeig MIDI) ---
+  // --- Actions (called from the UI or the MIDI mapping) ---
 
   dispatch(action: LooperAction): void {
     if (!this.isReady) return;
@@ -169,7 +169,7 @@ export class LooperEngine {
         track.state = 'recording';
         break;
       case 'recording':
-        // Només el primer loop es tanca manualment (tap). La resta es tanca sola.
+        // Only the first loop is closed manually (tap). The rest close automatically.
         if (this.captureMode === 'first' && this.capturing === track && this.pendingStop === null) {
           this.armStop(track);
         }
@@ -237,7 +237,7 @@ export class LooperEngine {
     this.emit();
   }
 
-  // --- Programació d'inici/aturada al següent compàs ---
+  // --- Scheduling start/stop at the next bar ---
 
   private armStart(track: LooperTrack, mode: CaptureMode): void {
     const sr = this.context!.sampleRate;
@@ -264,7 +264,7 @@ export class LooperEngine {
     });
   }
 
-  // --- Processador d'àudio ---
+  // --- Audio processor ---
 
   private processAudio(e: AudioProcessingEvent): void {
     if (!this.context) return;

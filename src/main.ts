@@ -1,5 +1,5 @@
-// Entry point de l'aplicació. Inicialitza els mòduls i enllaça la UI.
-// Fase 0 (MIDI + àudio) i Fase 1 (controlador GP-5).
+// Application entry point. Initialises the modules and wires up the UI.
+// Phase 0 (MIDI + audio) and Phase 1 (GP-5 controller).
 
 import './style.css';
 import { MIDIManager } from './midi/midi-manager';
@@ -29,12 +29,12 @@ import {
 } from './i18n';
 import type { MIDIInput, MIDIMessageEvent } from './midi/midi.types';
 
-// Textos de la UI segons l'idioma: tots s'apliquen amb `t()` i es re-renderitzen
-// quan canvia l'idioma.
+// UI texts follow the current language: all of them go through `t()` and are re-rendered
+// when the language changes.
 applyStaticTranslations();
 
 // ---------------------------------------------------------------------------
-// Instàncies dels mòduls
+// Module instances
 // ---------------------------------------------------------------------------
 
 const midiManager = new MIDIManager();
@@ -42,13 +42,13 @@ const audioManager = new AudioManager({ onStatus: (s) => setAudioStatus(s) });
 const gp5Controller = new GP5Controller();
 const gp5UI = new GP5UI(byId<HTMLDivElement>('gp5-ui'), gp5Controller);
 
-// Persistència: desa l'estat del GP-5 quan canvia.
+// Persistence: save the GP-5 state when it changes.
 gp5Controller.onPresetChange(() => saveGP5State(gp5Controller.getState()));
 gp5Controller.onModuleStateChange(() => saveGP5State(gp5Controller.getState()));
 gp5Controller.onTunerChange(() => saveGP5State(gp5Controller.getState()));
 
 // ---------------------------------------------------------------------------
-// Referències a la UI
+// UI references
 // ---------------------------------------------------------------------------
 
 const statusList = byId<HTMLUListElement>('status-list');
@@ -59,7 +59,7 @@ const audioInputSelect = byId<HTMLSelectElement>('audio-input-select');
 const audioStatusDiv = byId<HTMLDivElement>('audio-status');
 const localeSelect = byId<HTMLSelectElement>('locale-select');
 
-// --- Looper (Fase 3a) ---
+// --- Looper (Phase 3a) ---
 
 const savedLooper = loadLooperState();
 const looperEngine = new LooperEngine();
@@ -74,26 +74,26 @@ const looperUI = new LooperUI({
   onEnable: () => looperEngine.init(audioManager, audioInputSelect.value || undefined),
 });
 
-// Persistència: desa BPM i mapeig del looper quan canvien.
+// Persistence: save the BPM and looper mapping when they change.
 looperEngine.onChange((s) => {
   saveLooperState({ bpm: s.bpm, bindings: looperMapping.getBindings() });
 });
 
 const monitor = new MIDIMonitor({ logElement: midiLog });
 
-// Indicadors d'estat (les etiquetes es posen a `updateConnectionIndicators`).
+// Status indicators (labels are set in `updateConnectionIndicators`).
 const midiSupportIndicator = createStatusIndicator(statusList, t('status.webmidi'));
 const chocolateIndicator = createStatusIndicator(statusList, t('status.chocolate'));
 const gp5Indicator = createStatusIndicator(statusList, t('status.gp5'));
 const audioIndicator = createStatusIndicator(statusList, t('status.audio'));
 
-/** Estat de l'entrada d'àudio, guardat per poder re-traduir l'indicador. */
+/** Audio input state, kept so the indicator can be re-translated. */
 let audioIndicatorState: 'unknown' | 'open' | 'error' = 'unknown';
-/** Últim missatge de l'àrea d'àudio; és una funció per poder re-traduir-lo. */
+/** Last message shown in the audio area; a function so it can be re-translated. */
 let audioStatus: { text: () => string; active: boolean } | null = null;
 
 // ---------------------------------------------------------------------------
-// Utilitats de la UI
+// UI helpers
 // ---------------------------------------------------------------------------
 
 function setAudioStatus(text: () => string, active = false): void {
@@ -183,7 +183,7 @@ function updateConnectionIndicators(): void {
   renderDeviceLists();
 }
 
-/** Sincronitza el controlador i la UI del GP-5 amb la selecció actual. */
+/** Syncs the GP-5 controller and UI with the current device selection. */
 function syncGP5(): void {
   const { gp5Output } = midiManager.selection;
   gp5Controller.setOutput(gp5Output);
@@ -191,12 +191,12 @@ function syncGP5(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Subscripció de missatges MIDI del Chocolate Plus
+// Chocolate Plus MIDI message subscription
 // ---------------------------------------------------------------------------
 
 let subscribedInput: MIDIInput | null = null;
 
-/** Gestiona un missatge MIDI del Chocolate Plus: Learn o acció del looper. */
+/** Handles a Chocolate Plus MIDI message: MIDI Learn or a looper action. */
 function handleLooperMidi(data: Uint8Array): void {
   if (looperMapping.isLearning) {
     const action = looperMapping.completeLearning(data);
@@ -236,7 +236,7 @@ midiManager.onChange(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Àudio: llista d'entrades i monitoratge
+// Audio: input list and monitoring
 // ---------------------------------------------------------------------------
 
 async function refreshAudioInputs(): Promise<void> {
@@ -260,14 +260,14 @@ async function refreshAudioInputs(): Promise<void> {
     audioInputSelect.append(opt);
   }
 
-  // Manté l'entrada que l'usuari ja tenia seleccionada (p. ex. després de canviar d'idioma).
+  // Keep the input the user had selected (e.g. after changing the language).
   if (previous && devices.some((d) => d.deviceId === previous)) {
     audioInputSelect.value = previous;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Idioma
+// Language
 // ---------------------------------------------------------------------------
 
 for (const locale of LOCALES) {
@@ -288,7 +288,7 @@ onLocaleChange((locale) => {
 });
 
 // ---------------------------------------------------------------------------
-// Handlers dels botons
+// Button handlers
 // ---------------------------------------------------------------------------
 
 byId<HTMLButtonElement>('btn-request-midi').addEventListener('click', async () => {
@@ -342,14 +342,14 @@ byId<HTMLButtonElement>('btn-monitor-audio').addEventListener('click', async () 
 });
 
 // ---------------------------------------------------------------------------
-// Inicialització
+// Initialisation
 // ---------------------------------------------------------------------------
 
 async function init(): Promise<void> {
   updateConnectionIndicators();
   syncGP5();
 
-  // Restaura l'estat desat del GP-5 (sense enviar CC al dispositiu).
+  // Restore the saved GP-5 state (without sending CCs to the device).
   gp5Controller.restoreState(loadGP5State());
 
   try {
@@ -358,7 +358,7 @@ async function init(): Promise<void> {
     console.warn('No s\'han pogut llistar els dispositius d\'àudio:', err);
   }
 
-  // Si el navegador suporta MIDI, intenta activar-lo automàticament.
+  // If the browser supports MIDI, try to enable it automatically.
   if (typeof navigator.requestMIDIAccess === 'function') {
     try {
       await midiManager.enable();

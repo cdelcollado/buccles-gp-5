@@ -1,4 +1,4 @@
-// UI del looper: transport, BPM, pistes i MIDI Learn.
+// Looper UI: transport, BPM, tracks and MIDI Learn.
 
 import { el } from '../ui/components';
 import { t, onLocaleChange, type MessageKey } from '../i18n';
@@ -31,7 +31,7 @@ export interface LooperUIOptions {
   container: HTMLElement;
   engine: LooperEngine;
   mapping: LooperMapping;
-  /** Callback per activar l'àudio del looper (gest d'usuari). */
+  /** Callback to enable the looper's audio (user gesture). */
   onEnable: () => Promise<void>;
 }
 
@@ -41,7 +41,7 @@ export class LooperUI {
   private mapping: LooperMapping;
   private onEnable: () => Promise<void>;
 
-  // Elements del DOM: es recreen a cada `build()` (canvi d'idioma).
+  // DOM elements: recreated on every `build()` (language change).
   private enableButton!: HTMLButtonElement;
   private statusEl!: HTMLElement;
   private bpmInput!: HTMLInputElement;
@@ -61,14 +61,14 @@ export class LooperUI {
     this.mapping = options.mapping;
     this.onEnable = options.onEnable;
 
-    // Subscripcions una sola vegada: els callbacks usen sempre els elements actuals.
+    // Subscribe only once: the callbacks always use the current elements.
     this.engine.onChange((s) => this.renderState(s));
     onLocaleChange(() => this.build());
 
     this.build();
   }
 
-  /** Re-renderitza els botons d'aprenentatge i l'estat de "learning". */
+  /** Re-renders the learn buttons and the "learning" state. */
   refreshBindings(): void {
     for (const [action, btn] of this.learnButtons) {
       const trigger = this.mapping.get(action);
@@ -82,9 +82,9 @@ export class LooperUI {
       : t('looper.learn.idle');
   }
 
-  // --- Construcció del DOM ---
+  // --- DOM construction ---
 
-  /** Construeix (o reconstrueix) tota la UI amb l'idioma actual. */
+  /** Builds (or rebuilds) the whole UI in the current language. */
   private build(): void {
     this.container.innerHTML = '';
     this.trackCards.clear();
@@ -92,7 +92,7 @@ export class LooperUI {
     this.trackLayersEls.clear();
     this.learnButtons.clear();
 
-    // --- Activar / estat ---
+    // --- Enable / status ---
     const top = el('div', 'looper-top');
     this.enableButton = el('button', 'btn btn-primary', t('looper.enable'));
     this.enableButton.type = 'button';
@@ -125,7 +125,7 @@ export class LooperUI {
     transport.append(bpmLabel, this.bpmLockedEl, this.toggleAllButton, this.focusNextButton);
     this.container.append(transport);
 
-    // --- Pistes ---
+    // --- Tracks ---
     const tracks = el('div', 'looper-tracks');
     for (const id of ['A', 'B'] as const) {
       tracks.append(this.renderTrackCard(id));
@@ -178,7 +178,7 @@ export class LooperUI {
     buttons.append(recBtn, undoBtn, clearBtn);
     card.append(buttons);
 
-    // Clic a la targeta = enfocar la pista (sense disparar cap acció).
+    // Clicking the card = focus the track (without triggering any action).
     card.addEventListener('click', () => this.engine.focusTrack(id));
 
     this.trackCards.set(id, card);
@@ -187,7 +187,7 @@ export class LooperUI {
     return card;
   }
 
-  // --- Renderitzat d'estat ---
+  // --- State rendering ---
 
   private renderState(s: LooperSnapshot): void {
     this.enableButton.disabled = s.ready;
@@ -221,7 +221,7 @@ export class LooperUI {
     }
   }
 
-  // --- Accions ---
+  // --- Actions ---
 
   private focusAnd(id: TrackId, action: LooperAction): void {
     this.engine.focusTrack(id);

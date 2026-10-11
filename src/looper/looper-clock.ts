@@ -1,21 +1,21 @@
-// Rellotge del looper: embolcalla Tone.Transport per al BPM i la quantize per compàs.
+// Looper clock: wraps Tone.Transport for the BPM and bar quantisation.
 
 import * as Tone from 'tone';
 
-/** Marge de BPM permès. */
+/** Allowed BPM range. */
 const BPM_MIN = 40;
 const BPM_MAX = 240;
 
 /**
- * Font de veritat del tempo i de la graella de compassos (4/4).
- * La quantize real es fa mostrejant al processador d'àudio; aquí només
- * calculem el BPM i programem callbacks al límit del següent compàs.
+ * Source of truth for the tempo and the bar grid (4/4).
+ * The actual quantisation happens by sampling in the audio processor; here we only
+ * compute the BPM and schedule callbacks at the next bar boundary.
  */
 export class LooperClock {
   private bpm = 120;
   private started = false;
 
-  /** Activa l'àudio i arrenca el transport (cal cridar-ho dins un gest d'usuari). */
+  /** Enables audio and starts the transport (must be called inside a user gesture). */
   async start(): Promise<void> {
     await Tone.start();
     Tone.Transport.timeSignature = [4, 4];
@@ -35,19 +35,19 @@ export class LooperClock {
     Tone.Transport.bpm.value = this.bpm;
   }
 
-  /** Durada d'un compàs (4/4) en segons. */
+  /** Duration of one bar (4/4) in seconds. */
   barSeconds(): number {
     return Tone.Time('1m').toSeconds();
   }
 
-  /** Durada d'un compàs en mostres per a un sampleRate donat. */
+  /** Duration of one bar in samples for a given sampleRate. */
   barSamples(sampleRate: number): number {
     return Math.round(this.barSeconds() * sampleRate);
   }
 
   /**
-   * Programa un callback a l'inici del següent compàs.
-   * El callback rep el temps d'àudio (context time) exacte d'aquest límit.
+   * Schedules a callback at the start of the next bar.
+   * The callback receives the exact audio time (context time) of that boundary.
    */
   scheduleAtNextBar(callback: (contextTime: number) => void): void {
     const nextBar = Tone.Transport.nextSubdivision('1m');

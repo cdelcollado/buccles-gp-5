@@ -1,13 +1,13 @@
-// Taula de mapeig CC del Valeton GP-5.
-// Font: https://voes.be/midi-cc/valeton_gp5.html (llista oficial de Control Change).
+// CC mapping table for the Valeton GP-5.
+// Source: https://voes.be/midi-cc/valeton_gp5.html (official Control Change list).
 //
-// El GP-5 escolta al canal MIDI 1 (fix, no configurable).
-// Presets: 00-99 (CC#0, valor 0-99). NO usa Program Change per presets.
+// The GP-5 listens on MIDI channel 1 (fixed, not configurable).
+// Presets: 00-99 (CC#0, value 0-99). It does NOT use Program Change for presets.
 
-/** Canal MIDI fix del GP-5. */
+/** Fixed MIDI channel of the GP-5. */
 export const GP5_CHANNEL = 1;
 
-/** Identificador dels mòduls d'efecte del GP-5. */
+/** Identifier of the GP-5 effect modules. */
 export type GP5ModuleId =
   | 'NR'
   | 'PRE'
@@ -20,7 +20,7 @@ export type GP5ModuleId =
   | 'DLY'
   | 'RVB';
 
-/** Definició d'un mòdul d'efecte del GP-5. */
+/** Definition of a GP-5 effect module. */
 export interface GP5Module {
   id: GP5ModuleId;
   cc: number;
@@ -28,7 +28,7 @@ export interface GP5Module {
   description: string;
 }
 
-/** Control Changes especials (no mòduls). */
+/** Special Control Changes (not modules). */
 export const GP5_CC = {
   patchRecall: 0,
   patchVolume: 7,
@@ -42,7 +42,7 @@ export const GP5_CC = {
   ctl: 69,
 } as const;
 
-/** Els 10 mòduls d'efecte, en ordre de la cadena de senyal. */
+/** The 10 effect modules, in signal-chain order. */
 export const GP5_MODULES: readonly GP5Module[] = [
   { id: 'NR', cc: 48, name: 'NR', description: 'Noise Reduction' },
   { id: 'PRE', cc: 49, name: 'PRE', description: 'Preamp' },
@@ -57,18 +57,18 @@ export const GP5_MODULES: readonly GP5Module[] = [
 ] as const;
 
 /**
- * Semàntica on/off dels mòduls.
- * HIPÒTESI: 0 = off, 127 = on. Pendent de validar amb el maquinari
- * (els codis SysEx equivalents tenen ON i OFF com a missatges separats).
+ * On/off semantics of the modules.
+ * HYPOTHESIS: 0 = off, 127 = on. To be validated with the hardware
+ * (the equivalent SysEx codes use separate ON and OFF messages).
  */
 export const MODULE_OFF_VALUE = 0;
 export const MODULE_ON_VALUE = 127;
 
-/** Valor usat per als controls de tipus "trigger" (patch+/-, bank+/-, ctl). */
+/** Value used for "trigger" controls (patch+/-, bank+/-, ctl). */
 export const TRIGGER_VALUE = 127;
 
-/** Rang de presets: 00-99. */
+/** Preset range: 00-99. */
 export const PATCH_RANGE: readonly [number, number] = [0, 99];
 
-/** Rang del volum de patch (CC#7). */
+/** Patch volume range (CC#7). */
 export const PATCH_VOLUME_RANGE: readonly [number, number] = [0, 100];

@@ -1,15 +1,15 @@
-// Gestió d'àudio: captura de l'entrada (GP-5) via getUserMedia i monitoratge.
+// Audio management: input capture (GP-5) via getUserMedia, and monitoring.
 
 import { t } from '../i18n';
 
 export interface AudioManagerOptions {
-  /** Rep un missatge d'estat; es passa com a funció perquè es pugui re-traduir. */
+  /** Receives a status message; passed as a function so it can be re-translated. */
   onStatus?: (status: () => string) => void;
 }
 
 /**
- * Classe que gestiona l'entrada d'àudio (p. ex. del GP-5 via USB).
- * A la Fase 0 només fem la prova de captura i monitoratge (loopback).
+ * Class that manages the audio input (e.g. the GP-5 via USB).
+ * In Phase 0 we only do the capture and monitoring test (loopback).
  */
 export class AudioManager {
   private stream: MediaStream | null = null;
@@ -27,12 +27,12 @@ export class AudioManager {
     return this.monitoring;
   }
 
-  /** Retorna el flux d'àudio obert (o null si encara no s'ha obert). */
+  /** Returns the open audio stream (or null if it has not been opened yet). */
   getStream(): MediaStream | null {
     return this.stream;
   }
 
-  /** Llista els dispositius d'entrada d'àudio disponibles. */
+  /** Lists the available audio input devices. */
   async listInputDevices(): Promise<MediaDeviceInfo[]> {
     if (!navigator.mediaDevices?.enumerateDevices) {
       return [];
@@ -42,8 +42,8 @@ export class AudioManager {
   }
 
   /**
-   * Obre el flux d'àudio d'una entrada concreta (o la predeterminada).
-   * Desactiva cancel·lació d'eco, supressió de soroll i AGC per minimitzar latència.
+   * Opens the audio stream of a given input (or the default one).
+   * Disables echo cancellation, noise suppression and AGC to minimise latency.
    */
   async openInput(deviceId?: string): Promise<MediaStream> {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -64,7 +64,7 @@ export class AudioManager {
     return this.stream;
   }
 
-  /** Atura i allibera el flux d'àudio. */
+  /** Stops and releases the audio stream. */
   closeInput(): void {
     this.stopMonitoring();
     this.stream?.getTracks().forEach((t) => t.stop());
@@ -72,15 +72,15 @@ export class AudioManager {
     this.reportStatus(() => t('audioProbe.streamClosed'));
   }
 
-  /** Mesura i retorna la latència estimada del context d'àudio (en ms). */
+  /** Measures and returns the estimated latency of the audio context (in ms). */
   getBaseLatencyMs(): number {
     if (!this.audioContext) return 0;
     return Math.round(this.audioContext.baseLatency * 1000);
   }
 
   /**
-   * Activa/desactiva el monitoratge (escoltar l'entrada pels altaveus).
-   * Retorna la latència estimada en ms.
+   * Turns monitoring on/off (plays the input through the speakers).
+   * Returns the estimated latency in ms.
    */
   async toggleMonitoring(): Promise<number> {
     if (this.monitoring) {
