@@ -17,7 +17,21 @@ import {
   saveLooperState,
 } from './storage/persistence';
 import { byId, createStatusIndicator, el } from './ui/components';
+import {
+  LOCALES,
+  LOCALE_NAMES,
+  applyStaticTranslations,
+  getLocale,
+  onLocaleChange,
+  setLocale,
+  t,
+  type Locale,
+} from './i18n';
 import type { MIDIInput, MIDIMessageEvent } from './midi/midi.types';
+
+// Textos de la UI segons l'idioma: tots s'apliquen amb `t()` i es re-renderitzen
+// quan canvia l'idioma.
+applyStaticTranslations();
 
 // ---------------------------------------------------------------------------
 // Instàncies dels mòduls
@@ -43,6 +57,7 @@ const midiOutputsList = byId<HTMLUListElement>('midi-outputs');
 const midiLog = byId<HTMLPreElement>('midi-log');
 const audioInputSelect = byId<HTMLSelectElement>('audio-input-select');
 const audioStatusDiv = byId<HTMLDivElement>('audio-status');
+const localeSelect = byId<HTMLSelectElement>('locale-select');
 
 // --- Looper (Fase 3a) ---
 
@@ -66,19 +81,41 @@ looperEngine.onChange((s) => {
 
 const monitor = new MIDIMonitor({ logElement: midiLog });
 
-// Indicadors d'estat
-const midiSupportIndicator = createStatusIndicator(statusList, 'Suport Web MIDI');
-const chocolateIndicator = createStatusIndicator(statusList, 'Chocolate Plus (M-VAVE)');
-const gp5Indicator = createStatusIndicator(statusList, 'Valeton GP-5');
-const audioIndicator = createStatusIndicator(statusList, 'Entrada d\'àudio');
+// Indicadors d'estat (les etiquetes es posen a `updateConnectionIndicators`).
+const midiSupportIndicator = createStatusIndicator(statusList, t('status.webmidi'));
+const chocolateIndicator = createStatusIndicator(statusList, t('status.chocolate'));
+const gp5Indicator = createStatusIndicator(statusList, t('status.gp5'));
+const audioIndicator = createStatusIndicator(statusList, t('status.audio'));
+
+/** Estat de l'entrada d'àudio, guardat per poder re-traduir l'indicador. */
+let audioIndicatorState: 'unknown' | 'open' | 'error' = 'unknown';
+/** Últim missatge de l'àrea d'àudio; és una funció per poder re-traduir-lo. */
+let audioStatus: { text: () => string; active: boolean } | null = null;
 
 // ---------------------------------------------------------------------------
 // Utilitats de la UI
 // ---------------------------------------------------------------------------
 
-function setAudioStatus(text: string, active = false): void {
-  audioStatusDiv.textContent = text;
-  audioStatusDiv.className = active ? 'audio-status active' : 'audio-status';
+function setAudioStatus(text: () => string, active = false): void {
+  audioStatus = { text, active };
+  renderAudioStatus();
+}
+
+function renderAudioStatus(): void {
+  audioStatusDiv.textContent = audioStatus ? audioStatus.text() : '';
+  audioStatusDiv.className = audioStatus?.active ? 'audio-status active' : 'audio-status';
+}
+
+function renderAudioIndicator(): void {
+  if (audioIndicatorState === 'open') {
+    audioIndicator.setLevel('ok');
+    audioIndicator.setLabel(t('status.audio.open'));
+  } else if (audioIndicatorState === 'error') {
+    audioIndicator.setLevel('fail');
+    audioIndicator.setLabel(t('status.audio.error'));
+  } else {
+    audioIndicator.setLabel(t('status.audio'));
+  }
 }
 
 function renderDeviceLists(): void {
@@ -102,7 +139,7 @@ function renderDeviceLists(): void {
   }
 
   if (inputs.length === 0) {
-    midiInputsList.append(el('li', 'device-manufacturer', 'Cap dispositiu d\'entrada.'));
+    midiInputsList.append(el('li', 'device-manufacturer', t('midi.noInputs')));
   }
 
   for (const output of outputs) {
@@ -119,7 +156,7 @@ function renderDeviceLists(): void {
   }
 
   if (outputs.length === 0) {
-    midiOutputsList.append(el('li', 'device-manufacturer', 'Cap dispositiu de sortida.'));
+    midiOutputsList.append(el('li', 'device-manufacturer', t('midi.noOutputs')));
   }
 }
 
@@ -128,18 +165,20 @@ function updateConnectionIndicators(): void {
 
   midiSupportIndicator.setLevel(midiManager.isEnabled ? 'ok' : 'fail');
   midiSupportIndicator.setLabel(
-    midiManager.isEnabled ? 'Suport Web MIDI: actiu' : 'Suport Web MIDI: no actiu',
+    midiManager.isEnabled ? t('status.webmidi.on') : t('status.webmidi.off'),
   );
 
   chocolateIndicator.setLevel(chocolateInput ? 'ok' : 'warn');
   chocolateIndicator.setLabel(
     chocolateInput
-      ? `Chocolate Plus: ${chocolateInput.name}`
-      : 'Chocolate Plus: no detectat',
+      ? t('status.chocolate.on', { name: chocolateInput.name })
+      : t('status.chocolate.off'),
   );
 
   gp5Indicator.setLevel(gp5Output ? 'ok' : 'warn');
-  gp5Indicator.setLabel(gp5Output ? `Valeton GP-5: ${gp5Output.name}` : 'Valeton GP-5: no detectat');
+  gp5Indicator.setLabel(
+    gp5Output ? t('status.gp5.on', { name: gp5Output.name }) : t('status.gp5.off'),
+  );
 
   renderDeviceLists();
 }
@@ -202,12 +241,13 @@ midiManager.onChange(() => {
 
 async function refreshAudioInputs(): Promise<void> {
   const devices = await audioManager.listInputDevices();
+  const previous = audioInputSelect.value;
   audioInputSelect.innerHTML = '';
 
   if (devices.length === 0) {
     const opt = document.createElement('option');
     opt.value = '';
-    opt.textContent = 'Entrada predeterminada';
+    opt.textContent = t('audioProbe.defaultInput');
     audioInputSelect.append(opt);
     return;
   }
@@ -215,10 +255,37 @@ async function refreshAudioInputs(): Promise<void> {
   for (const device of devices) {
     const opt = document.createElement('option');
     opt.value = device.deviceId;
-    opt.textContent = device.label || `Entrada ${device.deviceId.slice(0, 8)}…`;
+    opt.textContent =
+      device.label || t('audioProbe.inputFallback', { id: device.deviceId.slice(0, 8) });
     audioInputSelect.append(opt);
   }
+
+  // Manté l'entrada que l'usuari ja tenia seleccionada (p. ex. després de canviar d'idioma).
+  if (previous && devices.some((d) => d.deviceId === previous)) {
+    audioInputSelect.value = previous;
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Idioma
+// ---------------------------------------------------------------------------
+
+for (const locale of LOCALES) {
+  const opt = document.createElement('option');
+  opt.value = locale;
+  opt.textContent = LOCALE_NAMES[locale];
+  localeSelect.append(opt);
+}
+localeSelect.value = getLocale();
+localeSelect.addEventListener('change', () => setLocale(localeSelect.value as Locale));
+
+onLocaleChange((locale) => {
+  localeSelect.value = locale;
+  updateConnectionIndicators();
+  renderAudioIndicator();
+  renderAudioStatus();
+  refreshAudioInputs().catch((err) => console.warn('No s\'han pogut llistar els dispositius d\'àudio:', err));
+});
 
 // ---------------------------------------------------------------------------
 // Handlers dels botons
@@ -231,7 +298,7 @@ byId<HTMLButtonElement>('btn-request-midi').addEventListener('click', async () =
     resubscribeMonitor();
   } catch (err) {
     console.error(err);
-    alert(`Error activant MIDI: ${(err as Error).message}`);
+    alert(t('error.midiActivation', { message: (err as Error).message }));
   }
 });
 
@@ -243,14 +310,15 @@ byId<HTMLButtonElement>('btn-request-audio').addEventListener('click', async () 
   try {
     const deviceId = audioInputSelect.value || undefined;
     await audioManager.openInput(deviceId);
-    audioIndicator.setLevel('ok');
-    audioIndicator.setLabel('Entrada d\'àudio: oberta');
+    audioIndicatorState = 'open';
+    renderAudioIndicator();
     await refreshAudioInputs();
   } catch (err) {
     console.error(err);
-    audioIndicator.setLevel('fail');
-    audioIndicator.setLabel('Entrada d\'àudio: error');
-    setAudioStatus(`Error: ${(err as Error).message}`);
+    audioIndicatorState = 'error';
+    renderAudioIndicator();
+    const message = (err as Error).message;
+    setAudioStatus(() => t('error.generic', { message }));
   }
 });
 
@@ -258,15 +326,18 @@ byId<HTMLButtonElement>('btn-monitor-audio').addEventListener('click', async () 
   try {
     const latency = await audioManager.toggleMonitoring();
     audioIndicator.setLevel(audioManager.isMonitoring ? 'ok' : 'warn');
+    const monitoring = audioManager.isMonitoring;
     setAudioStatus(
-      audioManager.isMonitoring
-        ? `Monitoratge actiu (~${latency} ms de latència).`
-        : 'Monitoratge desactivat.',
-      audioManager.isMonitoring,
+      () =>
+        monitoring
+          ? t('audioProbe.monitoringOn', { ms: latency })
+          : t('audioProbe.monitoringOff'),
+      monitoring,
     );
   } catch (err) {
     console.error(err);
-    setAudioStatus(`Error: ${(err as Error).message}`);
+    const message = (err as Error).message;
+    setAudioStatus(() => t('error.generic', { message }));
   }
 });
 

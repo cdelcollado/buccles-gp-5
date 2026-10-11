@@ -1,5 +1,6 @@
 // Gestió del Web MIDI: accés, llista de dispositius i detecció del GP-5 i el Chocolate Plus.
 
+import { t } from '../i18n';
 import type {
   MIDIAccess,
   MIDIInput,
@@ -63,7 +64,7 @@ export class MIDIManager {
    */
   async enable(): Promise<void> {
     if (typeof navigator.requestMIDIAccess !== 'function') {
-      throw new Error('Aquest navegador no suporta Web MIDI. Fes servir Chrome o Edge.');
+      throw new Error(t('error.midiUnsupported'));
     }
 
     this.access = await navigator.requestMIDIAccess({ sysex: false });

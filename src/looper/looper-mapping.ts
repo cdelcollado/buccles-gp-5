@@ -40,14 +40,6 @@ export const LOOPER_ACTIONS: readonly LooperAction[] = [
   'focusNext',
 ];
 
-export const ACTION_LABELS: Record<LooperAction, string> = {
-  recordOverdub: 'Rec / Overdub (pista enfocada)',
-  toggleAll: 'Play / Stop (totes)',
-  undo: 'Undo (pista enfocada)',
-  clear: 'Clear (pista enfocada)',
-  focusNext: 'Canvia pista (A↔B)',
-};
-
 /**
  * Triggers per defecte: Program Change al canal 1, botons 1–4 del Chocolate Plus
  * (0xC0 amb data1 0..3). Són una HIPÒTESI — si el pedal envia altres missatges

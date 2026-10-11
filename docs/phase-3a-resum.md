@@ -1,59 +1,59 @@
-# Resum — Fase 3a (Looper MVP, 2 pistes)
+# Summary — Phase 3a (Looper MVP, 2 tracks)
 
-Fet ✅. La **Fase 3a (Looper MVP, 2 pistes)** està implementada, compila net i està pujada a `main` (commit `531b3e6`).
+Done ✅. **Phase 3a (Looper MVP, 2 tracks)** is implemented, compiles cleanly and is pushed to `main` (commit `531b3e6`).
 
-## Què s'ha construït
+## What was built
 
-**Mòdul `src/looper/`** (5 fitxers nous):
+**Module `src/looper/`** (5 new files):
 
-- `looper-clock.ts` — BPM + graella de compassos via `Tone.Transport`; programa callbacks al límit del següent compàs amb el temps d'àudio exacte.
-- `looper-track.ts` — una pista: àudio (mono), capes, pila d'undo i reproducció en bucle.
-- `looper-mapping.ts` — MIDI Learn + mapeig per defecte dels 4 botons del pedal.
-- `looper-engine.ts` — orquestra les 2 pistes, el capturador `ScriptProcessorNode`, la longitud/fase mestra i les accions.
-- `looper-ui.ts` — transport, BPM, targetes de pista i MIDI Learn.
+- `looper-clock.ts` — BPM + bar grid via `Tone.Transport`; schedules callbacks at the next bar boundary with the exact audio time.
+- `looper-track.ts` — one track: audio (mono), layers, undo stack and loop playback.
+- `looper-mapping.ts` — MIDI Learn + default mapping of the pedal's 4 buttons.
+- `looper-engine.ts` — orchestrates the 2 tracks, the `ScriptProcessorNode` capture, the master length/phase and the actions.
+- `looper-ui.ts` — transport, BPM, track cards and MIDI Learn.
 
-**Modificats**: `audio-manager.ts` (comparteix el flux d'entrada), `persistence.ts` (BPM + bindings), `index.html` (secció Looper), `main.ts` (routing MIDI + persistència), `style.css`.
+**Modified**: `audio-manager.ts` (shares the input stream), `persistence.ts` (BPM + bindings), `index.html` (Looper section), `main.ts` (MIDI routing + persistence), `style.css`.
 
-## Com funciona el model de temps
+## How the timing model works
 
-- El **primer loop defineix la longitud mestra** (nombre enter de compassos) i la fase.
-- Tots els inicis/aturades **es quantitzen al límit de compàs** (sense deriva), amb captura mostrejada pel `ScriptProcessorNode`.
-- `record` al primer loop = tap per començar / tap per tancar. Després (pista buida o overdub) = **una volta automàtica** alineada al master.
-- El **BPM es bloqueja** un cop gravat (esborra les pistes per canviar-lo).
+- The **first loop sets the master length** (a whole number of bars) and the phase.
+- All starts/stops **are quantised to the bar boundary** (no drift), with sample-accurate capture by the `ScriptProcessorNode`.
+- `record` on the first loop = tap to start / tap to close. Afterwards (empty track or overdub) = **one automatic pass** aligned to the master.
+- The **BPM is locked** once something is recorded (clear the tracks to change it).
 
-## Mapeig per defecte del Chocolate Plus (HIPÒTESI)
+## Default Chocolate Plus mapping (HYPOTHESIS)
 
-| Botó | Acció | Missatge assumit |
+| Button | Action | Assumed message |
 |---|---|---|
 | 1 | Rec / Overdub | PC#0 ch1 |
-| 2 | Play / Stop totes | PC#1 ch1 |
+| 2 | Play / Stop all | PC#1 ch1 |
 | 3 | Undo | PC#2 ch1 |
-| 4 | Canvia pista A↔B | PC#3 ch1 |
+| 4 | Switch track A↔B | PC#3 ch1 |
 
-`clear` no té botó per defecte (només 4 botons): es fa amb **MIDI Learn** o des de la UI. Si el pedal envia CC/Note en lloc de PC, usa els botons "aprendre" de la secció Looper.
+`clear` has no default button (only 4 buttons): it is done with **MIDI Learn** or from the UI. If the pedal sends CC/Note instead of PC, use the "learn" buttons in the Looper section.
 
-## Com provar-ho
+## How to test it
 
 ```bash
 cd ~/Projects/buccles-gp-5 && npm run dev
 ```
 
-1. Obre **http://localhost:5173/** a Chrome/Edge.
-2. A «Prova d'àudio» selecciona el GP‑5 com a entrada.
-3. A «Looper», prem **«Activa el looper»** (gest d'usuari que obre l'entrada + arrenca Tone).
-4. Prem el botó 1 del pedal (o «Rec/Overdub» de la Pista A) → grava; torna a prémer per tancar el loop.
-5. Pista B, overdub, undo, clear i «Play/Stop totes» des de la UI o el pedal.
+1. Open **http://localhost:5173/** in Chrome/Edge.
+2. In "Audio test", select the GP‑5 as input.
+3. In "Looper", press **"Activate the looper"** (a user gesture that opens the input and starts Tone).
+4. Press button 1 on the pedal (or "Rec/Overdub" on Track A) → records; press again to close the loop.
+5. Track B, overdub, undo, clear and "Play/Stop all" from the UI or the pedal.
 
-## ⚠️ Pendent de validar amb el teu hardware
+## ⚠️ Pending validation with your hardware
 
-1. **Latència real** d'entrada GP‑5 → navegador (criteri per decidir si cal *lookahead scheduling*).
-2. **Missatges reals del Chocolate Plus** (PC vs CC) → reconfigura el mapeig amb MIDI Learn si cal.
-3. **Quantize feel** (que el loop tanqui just al compàs).
+1. **Real latency** from the GP‑5 input to the browser (criterion for deciding whether look-ahead scheduling is needed).
+2. **Real Chocolate Plus messages** (PC vs CC) → reconfigure the mapping with MIDI Learn if needed.
+3. **Quantise feel** (that the loop closes exactly on the bar).
 
-## Següents passes
+## Next steps
 
-- **Fase 3b**: metrònom + count-in, tap tempo, time-stretching (`GrainPlayer`).
-- **Fase 3c**: 4 pistes, waveform, volum/mute/solo per pista.
-- **Híbrid (Fase 2)**: afegir l'escena "GP‑5" al mateix pedal (arquitectura d'escenes ja prevista).
+- **Phase 3b**: metronome + count-in, tap tempo, time-stretching (`GrainPlayer`).
+- **Phase 3c**: 4 tracks, waveform, volume/mute/solo per track.
+- **Hybrid (Phase 2)**: add the "GP‑5" scene to the same pedal (scene architecture already planned).
 
-Vols que seguim amb la **Fase 3b (metrònom + count-in)**, o primer proves la 3a amb el pedal i m'expliques què falla?
+Shall we continue with **Phase 3b (metronome + count-in)**, or first test 3a with the pedal and tell me what fails?

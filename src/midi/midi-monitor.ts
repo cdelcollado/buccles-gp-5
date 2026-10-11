@@ -2,6 +2,7 @@
 // Utilitza el protócol comú de Web MIDI (0x8, 0x9, 0xA, 0xB, 0xC, 0xE, 0xF).
 
 import type { ParsedMIDIMessage } from './midi.types';
+import { intlLocale, t } from '../i18n';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -64,10 +65,10 @@ export function describeMessage(msg: ParsedMIDIMessage): { text: string; cssClas
       return { text: `PitchBend ${bend}  ch${channel}`, cssClass: 'msg-other' };
 
     case 0xf0: // System
-      return { text: `SysEx/System (${msg.data.length} bytes)`, cssClass: 'msg-sysex' };
+      return { text: t('monitor.sysex', { n: msg.data.length }), cssClass: 'msg-sysex' };
 
     default:
-      return { text: `Desconegut ${msg.data.join(' ')}`, cssClass: 'msg-other' };
+      return { text: t('monitor.unknown', { bytes: msg.data.join(' ') }), cssClass: 'msg-other' };
   }
 }
 
@@ -89,7 +90,7 @@ export class MIDIMonitor {
     const msg = parseMIDIMessage(data);
     const { text, cssClass } = describeMessage(msg);
     const hex = [...data].map((b) => b.toString(16).padStart(2, '0')).join(' ');
-    const timestamp = new Date().toLocaleTimeString('ca-ES', { hour12: false });
+    const timestamp = new Date().toLocaleTimeString(intlLocale(), { hour12: false });
 
     this.lines.push(`<span class="msg-time">${timestamp}</span>  <span class="${cssClass}">${text}</span>  <span class="msg-other">[${hex}]</span>`);
 

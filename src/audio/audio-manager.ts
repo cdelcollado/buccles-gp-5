@@ -1,7 +1,10 @@
 // Gestió d'àudio: captura de l'entrada (GP-5) via getUserMedia i monitoratge.
 
+import { t } from '../i18n';
+
 export interface AudioManagerOptions {
-  onStatus?: (status: string) => void;
+  /** Rep un missatge d'estat; es passa com a funció perquè es pugui re-traduir. */
+  onStatus?: (status: () => string) => void;
 }
 
 /**
@@ -14,7 +17,7 @@ export class AudioManager {
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private monitoring = false;
 
-  private onStatus?: (status: string) => void;
+  private onStatus?: (status: () => string) => void;
 
   constructor(options: AudioManagerOptions = {}) {
     this.onStatus = options.onStatus;
@@ -44,7 +47,7 @@ export class AudioManager {
    */
   async openInput(deviceId?: string): Promise<MediaStream> {
     if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('Aquest navegador no suporta getUserMedia.');
+      throw new Error(t('error.getUserMediaUnsupported'));
     }
 
     const constraints: MediaStreamConstraints = {
@@ -57,7 +60,7 @@ export class AudioManager {
     };
 
     this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-    this.reportStatus('Flux d\'àudio obert correctament.');
+    this.reportStatus(() => t('audioProbe.streamOpen'));
     return this.stream;
   }
 
@@ -66,7 +69,7 @@ export class AudioManager {
     this.stopMonitoring();
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
-    this.reportStatus('Flux d\'àudio tancat.');
+    this.reportStatus(() => t('audioProbe.streamClosed'));
   }
 
   /** Mesura i retorna la latència estimada del context d'àudio (en ms). */
@@ -86,7 +89,7 @@ export class AudioManager {
     }
 
     if (!this.stream) {
-      throw new Error('Primer obre una entrada d\'àudio.');
+      throw new Error(t('error.openInputFirst'));
     }
 
     this.audioContext ??= new AudioContext({ latencyHint: 'interactive' });
@@ -98,9 +101,8 @@ export class AudioManager {
     this.sourceNode.connect(this.audioContext.destination);
     this.monitoring = true;
 
-    this.reportStatus(
-      `Monitoratge actiu. Latència base: ~${this.getBaseLatencyMs()} ms.`,
-    );
+    const latency = this.getBaseLatencyMs();
+    this.reportStatus(() => t('audioProbe.monitoringOn', { ms: latency }));
     return this.getBaseLatencyMs();
   }
 
@@ -112,7 +114,7 @@ export class AudioManager {
     this.monitoring = false;
   }
 
-  private reportStatus(status: string): void {
+  private reportStatus(status: () => string): void {
     this.onStatus?.(status);
   }
 }

@@ -1,56 +1,56 @@
-# Fase 0 — Bootstrap i prototip de viabilitat
+# Phase 0 — Bootstrap and feasibility prototype
 
-**Estat**: ✅ Completat
+**Status**: ✅ Completed
 
-## Objectiu
+## Goal
 
-Tenir el projecte compilant i servint, i verificar que les APIs Web MIDI i Web Audio funcionen amb el hardware (GP-5 i Chocolate Plus).
+Have the project compiling and served, and verify that the Web MIDI and Web Audio APIs work with the hardware (GP-5 and Chocolate Plus).
 
-## Què s'ha fet
+## What was done
 
-### Dependències
-- `tone@^15.1.22` afegida a `dependencies`.
+### Dependencies
+- `tone@^15.1.22` added to `dependencies`.
 
-### Estructura creada
+### Structure created
 ```
 src/
-├── index.html              # UI base: connexió, dispositius, monitor MIDI, prova d'àudio
-├── main.ts                 # Entry point: inicialitza MIDI + àudio + UI
-├── style.css               # Dark theme, panels, indicadors d'estat, monitor log
+├── index.html              # Base UI: connection, devices, MIDI monitor, audio test
+├── main.ts                 # Entry point: initialises MIDI + audio + UI
+├── style.css               # Dark theme, panels, status indicators, monitor log
 ├── midi/
-│   ├── midi.types.ts       # Tipus per a la Web MIDI API (no al lib estàndard de TS)
-│   ├── midi-manager.ts     # requestMIDIAccess, llista dispositius, detecció GP-5/Chocolate, statechange
-│   └── midi-monitor.ts     # Parse i visualització de missatges MIDI (Note/CC/PC/SysEx)
+│   ├── midi.types.ts       # Types for the Web MIDI API (not in the standard TS library)
+│   ├── midi-manager.ts     # requestMIDIAccess, device list, GP-5/Chocolate detection, statechange
+│   └── midi-monitor.ts     # Parse and display MIDI messages (Note/CC/PC/SysEx)
 ├── audio/
-│   └── audio-manager.ts    # getUserMedia del GP-5, monitoratge loopback, mesura de latència
+│   └── audio-manager.ts    # GP-5 getUserMedia, loopback monitoring, latency measurement
 └── ui/
-    └── components.ts       # Helpers UI + indicadors d'estat
+    └── components.ts       # UI helpers + status indicators
 ```
 
-### Funcionalitats implementades
-- Detecció automàtica del **Chocolate Plus** (entrada) i **GP-5** (sortida) per subcadena, amb indicadors d'estat i fallback manual.
-- **Monitor MIDI** en temps real per verificar que el Chocolate Plus envia missatges.
-- **Prova d'àudio**: selecció de l'entrada del GP-5, monitoratge loopback i mesura de latència base.
-- Gestió de `statechange` (connectar/desconnectar en calent).
-- `npm run build` (tsc + vite) passa sense errors.
+### Implemented features
+- Automatic detection of the **Chocolate Plus** (input) and the **GP-5** (output) by substring, with status indicators and a manual fallback.
+- Real-time **MIDI monitor** to verify that the Chocolate Plus sends messages.
+- **Audio test**: GP-5 input selection, loopback monitoring and base latency measurement.
+- `statechange` handling (hot connect/disconnect).
+- `npm run build` (tsc + vite) passes without errors.
 
-### Configuració de Vite
-`root: 'src'` perquè l'`index.html` viu a `src/`, amb `build.outDir` redirigit a `dist/` (arrel del projecte).
+### Vite configuration
+`root: 'src'` because `index.html` lives in `src/`, with `build.outDir` redirected to `dist/` (project root).
 
-## Com verificar-ho amb el hardware (tasca 0.9)
+## How to verify with the hardware (task 0.9)
 
-1. Obrir **http://localhost:5173/** a Chrome/Edge.
-2. Connectar el **GP-5** per USB → indicador "Valeton GP-5: ✅".
-3. Connectar el **Chocolate Plus** per USB → indicador "Chocolate Plus: ✅".
-4. Prémer botons del Chocolate Plus → missatges al **Monitor MIDI**.
-5. A **Prova d'àudio**, seleccionar el GP-5 com a entrada i prémer "Monitoritza l'entrada" → sentir la guitarra pels altaveus amb la latència mostrada.
+1. Open **http://localhost:5173/** in Chrome/Edge.
+2. Connect the **GP-5** via USB → indicator "Valeton GP-5: ✅".
+3. Connect the **Chocolate Plus** via USB → indicator "Chocolate Plus: ✅".
+4. Press buttons on the Chocolate Plus → messages appear in the **MIDI Monitor**.
+5. In **Audio test**, select the GP-5 as input and press "Monitor input" → hear the guitar through the speakers with the displayed latency.
 
-## Notes i riscos detectats
+## Notes and detected risks
 
-- La detecció de dispositius es fa per **subcadena** sobre el nom del port MIDI. Cal validar els noms reals (Windows/Linux/macOS) i ajustar els patrons si cal.
-- La **latència** del looper s'ha de validar amb el hardware real. `latencyHint: "interactive"` i processament desactivat (`echoCancellation`/`noiseSuppression`/`autoGainControl` = false) estan aplicats.
-- No s'envia cap **SysEx** (risc de brick del GP-5). Només CC documentats a la Fase 1.
+- Device detection is by **substring** match on the MIDI port name. The real names must be validated (Windows/Linux/macOS) and the patterns adjusted if needed.
+- The looper **latency** must be validated with the real hardware. `latencyHint: "interactive"` and audio processing disabled (`echoCancellation`/`noiseSuppression`/`autoGainControl` = false) are applied.
+- No **SysEx** is sent (risk of bricking the GP-5). Only CCs documented in Phase 1 are used.
 
-## Següent pas
+## Next step
 
-**Fase 1 — MVP controlador GP-5**: presets, blocs d'efecte i afinador. Requereix la **taula de CC del manual del GP-5** (pàg. ~40) per omplir `gp5-mapping.ts`.
+**Phase 1 — GP-5 controller MVP**: presets, effect blocks and tuner. It requires the **GP-5 manual's CC table** (page ~40) to fill `gp5-mapping.ts`.

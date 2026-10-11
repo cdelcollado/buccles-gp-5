@@ -8,65 +8,72 @@
   <body>
     <div id="app">
       <header class="app-header">
-        <h1>buccles-gp-5</h1>
-        <p class="subtitle">
+        <div class="app-header-top">
+          <h1>buccles-gp-5</h1>
+          <select id="locale-select" class="locale-select" data-i18n-aria="app.language"></select>
+        </div>
+        <p class="subtitle" data-i18n="app.subtitle">
           Hub per controlar el Valeton GP-5 i el Chocolate Plus (M-VAVE)
         </p>
       </header>
 
       <section id="connection-status" class="panel">
-        <h2>Estat de la connexió</h2>
+        <h2 data-i18n="status.title">Estat de la connexió</h2>
         <ul id="status-list" class="status-list"></ul>
-        <button id="btn-request-midi" class="btn btn-primary">
+        <button id="btn-request-midi" class="btn btn-primary" data-i18n="button.activateMidi">
           Activar MIDI
         </button>
-        <button id="btn-request-audio" class="btn btn-primary">
-          Activar Àudio
+        <button id="btn-request-audio" class="btn btn-primary" data-i18n="button.activateAudio">
+          Activar àudio
         </button>
       </section>
 
       <section id="gp5-control" class="panel">
-        <h2>Control GP-5</h2>
-        <p class="hint">
+        <h2 data-i18n="gp5.title">Control GP-5</h2>
+        <p class="hint" data-i18n="gp5.hint">
           Connecta el GP-5 per USB per controlar presets, mòduls d'efecte i afinador.
         </p>
         <div id="gp5-ui" class="gp5-ui"></div>
       </section>
 
       <section id="midi-devices" class="panel">
-        <h2>Dispositius MIDI</h2>
+        <h2 data-i18n="midi.title">Dispositius MIDI</h2>
         <div class="device-columns">
           <div>
-            <h3>Entrades</h3>
+            <h3 data-i18n="midi.inputs">Entrades</h3>
             <ul id="midi-inputs" class="device-list"></ul>
           </div>
           <div>
-            <h3>Sortides</h3>
+            <h3 data-i18n="midi.outputs">Sortides</h3>
             <ul id="midi-outputs" class="device-list"></ul>
           </div>
         </div>
       </section>
 
       <section id="midi-monitor" class="panel">
-        <h2>Monitor MIDI (debug)</h2>
-        <p class="hint">Prem botons del Chocolate Plus i veuràs els missatges aquí.</p>
+        <h2 data-i18n="monitor.title">Monitor MIDI (debug)</h2>
+        <p class="hint" data-i18n="monitor.hint">
+          Prem botons del Chocolate Plus i veuràs els missatges aquí.
+        </p>
         <pre id="midi-log" class="monitor-log"></pre>
-        <button id="btn-clear-log" class="btn">Buida el log</button>
+        <button id="btn-clear-log" class="btn" data-i18n="monitor.clear">Buida el log</button>
       </section>
 
       <section id="audio-probe" class="panel">
-        <h2>Prova d'àudio (GP-5)</h2>
+        <h2 data-i18n="audioProbe.title">Prova d'àudio (GP-5)</h2>
         <div class="audio-controls">
-          <label for="audio-input-select">Entrada d'àudio:</label>
+          <label for="audio-input-select" data-i18n="audioProbe.input">Entrada d'àudio:</label>
           <select id="audio-input-select"></select>
-          <button id="btn-monitor-audio" class="btn">Monitoritza l'entrada</button>
+          <button id="btn-monitor-audio" class="btn" data-i18n="audioProbe.monitor">
+            Monitoritza l'entrada
+          </button>
         </div>
         <div id="audio-status" class="audio-status"></div>
       </section>
 
       <section id="looper" class="panel">
-        <h2>Looper</h2>
-        <p class="hint">
+        <h2 data-i18n="looper.title">Looper</h2>
+        <p class="hint" data-i18n="looper.hint">
           Grava la guitarra processada pel GP-5 (USB) en 2 pistes sincronitzades,
           controlat pel Chocolate Plus. Fes servir la mateixa entrada seleccionada
           a la secció «Prova d'àudio».

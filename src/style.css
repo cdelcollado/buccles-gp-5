@@ -41,6 +41,22 @@ body {
   font-size: 2rem;
 }
 
+.app-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.locale-select {
+  background: var(--bg-panel-alt);
+  color: var(--text);
+  border: 1px solid var(--bg-panel-alt);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+}
+
 .subtitle {
   margin: 0;
   color: var(--text-muted);

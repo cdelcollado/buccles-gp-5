@@ -1,48 +1,48 @@
-# buccles-gp-5 — Pla d'implementació
+# buccles-gp-5 — Implementation plan
 
-## Resum
+## Summary
 
-App web per controlar un **Valeton GP-5** (USB MIDI + àudio) i un **Chocolate Plus (M-VAVE)** (controlador MIDI de peu), amb un **looper** integrat. Tot al navegador amb **Web MIDI API**, **Web Audio API** i **Tone.js**.
+Web app to control a **Valeton GP-5** (USB MIDI + audio) and a **Chocolate Plus (M-VAVE)** (foot MIDI controller), with a built-in **looper**. Everything runs in the browser with the **Web MIDI API**, the **Web Audio API** and **Tone.js**.
 
 ---
 
-## Decisions resoltes
+## Resolved decisions
 
-| Decisió | Resposta |
+| Decision | Answer |
 |---|---|
-| iOS | **No**. Només desktop (Chrome/Edge). |
-| Font d'àudio del looper | **GP-5 USB** (interfície d'àudio USB). |
-| Configuració del Chocolate Plus | **MIDI Learn** (l'app aprèn qualsevol missatge del pedal; no cal Cube Suite). |
-| Complexitat del looper | **1 pista primer**, iterar a 4. |
-| UI | **Vanilla TypeScript** (sense framework). |
-| Llibreria d'àudio | **Tone.js** (transport, scheduling, quantize). |
+| iOS | **No**. Desktop only (Chrome/Edge). |
+| Looper audio source | **GP-5 USB** (USB audio interface). |
+| Chocolate Plus configuration | **MIDI Learn** (the app learns any message from the pedal; Cube Suite is not needed). |
+| Looper complexity | **1 track first**, then iterate to 4. |
+| UI | **Vanilla TypeScript** (no framework). |
+| Audio library | **Tone.js** (transport, scheduling, quantize). |
 
 ---
 
-## Arquitectura
+## Architecture
 
 ```
-[Guitarra] → [GP-5]  ──USB (MIDI + ÀUDIO)──┐
-                                             ├──→ [PC / Chrome = APP]
-[Chocolate Plus] ──USB (MIDI)───────────────┘
+[Guitar] → [GP-5]  ──USB (MIDI + AUDIO)──┐
+                                          ├──→ [PC / Chrome = APP]
+[Chocolate Plus] ──USB (MIDI)─────────────┘
 ```
 
-**Flux A — Control GP-5:**
+**Flow A — GP-5 control:**
 ```
-Chocolate Plus (CC/PC) ─→ App (router) ─→ GP-5 (CC#0, blocs…)
-App UI (botons/presets) ────────────────→ GP-5
+Chocolate Plus (CC/PC) ─→ App (router) ─→ GP-5 (CC#0, blocks…)
+App UI (buttons/presets) ────────────────→ GP-5
 ```
 
-**Flux B — Looper:**
+**Flow B — Looper:**
 ```
-GP-5 (àudio USB) ─→ getUserMedia ─→ Tone.js ─→ Looper buffer
-Chocolate Plus (CC) ─→ App ─→ control looper (rec/play/overdub/undo)
-Looper ─→ sortida àudio (altaveus PC)
+GP-5 (USB audio) ─→ getUserMedia ─→ Tone.js ─→ Looper buffer
+Chocolate Plus (CC) ─→ App ─→ looper control (rec/play/overdub/undo)
+Looper ─→ audio output (PC speakers)
 ```
 
 ---
 
-## Estructura de fitxers
+## File structure
 
 ```
 src/
@@ -89,168 +89,172 @@ src/
 
 ---
 
-## Fases d'implementació
+## Implementation phases
 
-### Fase 0 — Bootstrap i prototip de viabilitat
+### Phase 0 — Bootstrap and feasibility prototype
 
-**Objectiu**: Projecte compilant, servint, i verificació que MIDI + àudio funcionen amb el hardware.
+**Goal**: project compiles and is served; verify that MIDI and audio work with the hardware.
 
-| # | Tasca | Fitxers | Detall |
-|---|-------|---------|--------|
-| 0.1 | Instal·lar dependències | `package.json` | `npm install` + afegir `tone` |
-| 0.2 | Crear HTML base | `src/index.html` | Estructura HTML amb `<div id="app">`, link a `main.ts` i `style.css` |
-| 0.3 | Entry point | `src/main.ts` | Inicialització seqüencial: MIDI → Àudio → UI |
-| 0.4 | Estils base | `src/style.css` | CSS reset, variables de color, layout bàsic (flex/grid) |
-| 0.5 | MIDI Manager | `src/midi/midi-manager.ts` | `navigator.requestMIDIAccess()`, llista inputs/outputs, detecta "GP-5" i "Chocolate" per subcadena, gestiona `statechange` |
-| 0.6 | MIDI Monitor (debug) | `src/midi/midi-monitor.ts` | Mostra tots els missatges MIDI entrants en temps real (per verificar que el Chocolate Plus funciona) |
-| 0.7 | Audio probe | `src/audio/audio-manager.ts` | `getUserMedia({ audio: true })` seleccionant el GP-5 com a input, playback loopback per verificar latència |
-| 0.8 | UI de connexió | `src/ui/components.ts` | Indicadors d'estat: "GP-5 connectat ✅/❌", "Chocolate Plus ✅/❌", "Àudio ✅/❌" |
-| 0.9 | Verificar manualment | — | Connectar GP-5 i Chocolate Plus, verificar que l'app els detecta i mostra missatges |
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 0.1 | Install dependencies | `package.json` | `npm install` and add `tone` |
+| 0.2 | Create base HTML | `src/index.html` | HTML structure with `<div id="app">`, link to `main.ts` and `style.css` |
+| 0.3 | Entry point | `src/main.ts` | Sequential init: MIDI → Audio → UI |
+| 0.4 | Base styles | `src/style.css` | CSS reset, colour variables, basic layout (flex/grid) |
+| 0.5 | MIDI Manager | `src/midi/midi-manager.ts` | `navigator.requestMIDIAccess()`, list inputs/outputs, detect "GP-5" and "Chocolate" by substring, handle `statechange` |
+| 0.6 | MIDI Monitor (debug) | `src/midi/midi-monitor.ts` | Show all incoming MIDI messages in real time (to verify the Chocolate Plus works) |
+| 0.7 | Audio probe | `src/audio/audio-manager.ts` | `getUserMedia({ audio: true })` selecting the GP-5 as input, loopback playback to check latency |
+| 0.8 | Connection UI | `src/ui/components.ts` | Status indicators: "GP-5 connected ✅/❌", "Chocolate Plus ✅/❌", "Audio ✅/❌" |
+| 0.9 | Manual check | — | Connect the GP-5 and the Chocolate Plus; verify the app detects them and shows messages |
 
-**Criteri de completitud**: L'app es serveix a `localhost:5173`, detecta ambdós dispositius en connectar-los, mostra els missatges MIDI del Chocolate Plus en pantalla, i captura àudio del GP-5.
-
----
-
-### Fase 1 — MVP: Controlador GP-5
-
-**Objectiu**: UI completa per controlar tots els paràmetres del GP-5 des del navegador.
-
-| # | Tasca | Fitxers | Detall |
-|---|-------|---------|--------|
-| 1.1 | Taula de mapeig CC | `src/gp5/gp5-mapping.ts` | Objecte TypeScript amb tots els CC del GP-5 (preset recall = CC#0, patch+/patch-, bank+/bank-, toggle blocs, afinador). Cada entrada: `{ cc: number, name: string, description: string, valueRange: [min, max] }` |
-| 1.2 | GP-5 Controller | `src/gp5/gp5-controller.ts` | Classe `GP5Controller` amb mètodes: `recallPreset(n: 1-100)`, `toggleBlock(block: string)`, `patchUp()`, `patchDown()`, `bankUp()`, `bankDown()`, `toggleTuner()`. Cada mètode envia el CC corresponent via `MIDIOutput.send()` |
-| 1.3 | Preset Grid UI | `src/gp5/gp5-ui.ts` | Graella de 100 botons (10×10), clic = recall preset. Preset actiu ressaltat. Navegació per bancs. |
-| 1.4 | Effect Chain UI | `src/gp5/gp5-ui.ts` | 10 mòduls d'efecte en fila (NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB). Toggle on/off amb indicador visual (color). |
-| 1.5 | Afinador | `src/gp5/gp5-ui.ts` | Botó "Tuner" que envia CC d'afinador. Estat visual (on/off). |
-| 1.6 | Persistència | `src/storage/persistence.ts` | `localStorage` per: preset actual, estat dels blocs. Càrrega a l'inici. |
-| 1.7 | Detecció automàtica | `src/midi/midi-manager.ts` | Match per subcadena al nom del port: "GP-5" → output, "Chocolate" / "M-VAVE" → input. Fallback: selector manual. |
-
-**Criteri de completitud**: Des de la UI es pot canviar de preset, activar/desactivar cada bloc d'efecte, i activar l'afinador. El GP-5 respon correctament a totes les accions.
+**Done when**: the app is served at `localhost:5173`, detects both devices when connected, shows the Chocolate Plus MIDI messages on screen, and captures audio from the GP-5.
 
 ---
 
-### Fase 2 — Router MIDI: Chocolate Plus → GP-5
+### Phase 1 — MVP: GP-5 controller
 
-**Objectiu**: Els botons del Chocolate Plus controlen el GP-5, amb mapeig configurable i escenes.
+**Goal**: complete UI to control all GP-5 parameters from the browser.
 
-| # | Tasca | Fitxers | Detall |
-|---|-------|---------|--------|
-| 2.1 | Motor de routing | `src/router/midi-router.ts` | Classe `MIDIRouter`: rep missatges del Chocolate Plus, aplica regles de mapeig, envia CC al GP-5. Regles: `{ inputCC: number, outputCC: number, outputValue?: number, transform?: fn }` |
-| 2.2 | Mapeig per defecte | `src/router/default-mappings.ts` | 4 botons del Chocolate Plus → 4 presets (o patch+/patch-/bank+/bank-). Configurable. |
-| 2.3 | Editor de mapeig | `src/router/mapping-editor.ts` | UI per configurar cada botó: selector de botó del Chocolate Plus (amb MIDI learn) + selector d'acció del GP-5 (dropdown amb totes les accions disponibles) |
-| 2.4 | MIDI Learn | `src/router/mapping-editor.ts` | Mode "Learn": l'usuari prem "Learn", després prem un botó al Chocolate Plus, l'app captura el CC i l'assigna a l'acció seleccionada |
-| 2.5 | Escenes | `src/router/scenes.ts` | 2+ escenes commutables. Escena A = "Control GP-5" (botons → presets/blocs). Escena B = "Looper" (botons → looper). Commutació des de UI o des d'un botó dedicat del Chocolate Plus. |
-| 2.6 | Persistència de mapeigs | `src/storage/persistence.ts` | Desar regles de routing i escenes a `localStorage` |
-| 2.7 | Export/Import | `src/storage/persistence.ts` | Exportar tota la configuració com a JSON. Importar des de fitxer. |
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 1.1 | CC mapping table | `src/gp5/gp5-mapping.ts` | TypeScript object with all GP-5 CCs (preset recall = CC#0, patch+/patch-, bank+/bank-, block toggles, tuner). Each entry: `{ cc: number, name: string, description: string, valueRange: [min, max] }` |
+| 1.2 | GP-5 Controller | `src/gp5/gp5-controller.ts` | Class `GP5Controller` with methods: `recallPreset(n: 1-100)`, `toggleBlock(block: string)`, `patchUp()`, `patchDown()`, `bankUp()`, `bankDown()`, `toggleTuner()`. Each method sends the matching CC via `MIDIOutput.send()` |
+| 1.3 | Preset grid UI | `src/gp5/gp5-ui.ts` | Grid of 100 buttons (10×10), click = recall preset. Active preset highlighted. Bank navigation. |
+| 1.4 | Effect chain UI | `src/gp5/gp5-ui.ts` | 10 effect modules in a row (NR, PRE, DST, N→S, AMP, CAB, EQ, MOD, DLY, RVB). Toggle on/off with a visual indicator (colour). |
+| 1.5 | Tuner | `src/gp5/gp5-ui.ts` | "Tuner" button that sends the tuner CC. Visual state (on/off). |
+| 1.6 | Persistence | `src/storage/persistence.ts` | `localStorage` for: current preset, block states. Loaded at start. |
+| 1.7 | Automatic detection | `src/midi/midi-manager.ts` | Substring match on the port name: "GP-5" → output, "Chocolate" / "M-VAVE" → input. Fallback: manual selector. |
 
-**Criteri de completitud**: Els 4 botons del Chocolate Plus controlen el GP-5 segons el mapeig configurat. L'usuari pot canviar el mapeig des de la UI (amb MIDI learn) i commutar entre escenes.
-
----
-
-### Fase 3 — Looper
-
-**Objectiu**: Looper funcional amb 1 pista, gravant l'àudio del GP-5, controlable per MIDI. Després iterar a multi-pista.
-
-#### Iteració 3a — Looper bàsic (1 pista)
-
-| # | Tasca | Fitxers | Detall |
-|---|-------|---------|--------|
-| 3a.1 | Audio Manager | `src/audio/audio-manager.ts` | Centralitza `AudioContext`, selecciona input (GP-5), crea nodes de routing. `latencyHint: "interactive"`, `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` |
-| 3a.2 | Tone.js init | `src/looper/looper-clock.ts` | Inicialitza `Tone.Transport`, configura BPM. `Tone.start()` al primer click de l'usuari (política d'autoplay). |
-| 3a.3 | Track engine | `src/looper/looper-track.ts` | Classe `LooperTrack`: grava amb `Tone.Recorder` o `MediaRecorder` + `AudioBuffer`. Operacions: `record()`, `play()`, `stop()`, `overdub()`, `undo()`, `clear()`. Emmagatzema àudio com `AudioBuffer` en memòria. |
-| 3a.4 | Looper Engine | `src/looper/looper-engine.ts` | Orquestra les pistes, gestiona el mix de sortida. Connecta input del GP-5 → recorder → playback → speakers. |
-| 3a.5 | Quantize | `src/looper/looper-clock.ts` | Snap de record start/stop al pròxim beat/bar boundary. Usa `Tone.Transport` per calcular el timing exacte. |
-| 3a.6 | Looper UI | `src/looper/looper-ui.ts` | Vista de la pista: estat (idle/recording/playing/overdub), botons de transport, indicador de temps, volum. |
-| 3a.7 | MIDI control | `src/router/midi-router.ts` | Mapeig dins l'escena "Looper": botó 1 = record/play, botó 2 = stop, botó 3 = undo, botó 4 = clear. |
-
-**Criteri de completitud**: Amb un botó del Chocolate Plus (o de la UI) es grava un loop, amb un altre es reprodueix, overdub, undo i clear. L'àudio gravat ve del GP-5.
-
-#### Iteració 3b — Metrònom i count-in
-
-| # | Tasca | Fitxers | Detall |
-|---|-------|---------|--------|
-| 3b.1 | Metrònom | `src/looper/looper-metronome.ts` | Click track amb `Tone.Synth` o `Tone.MembraneSynth`. Sons a cada beat, accent al beat 1. Toggle on/off. |
-| 3b.2 | Count-in | `src/looper/looper-metronome.ts` | 1 compàs de count-in abans de començar a gravar (opcional). |
-| 3b.3 | BPM UI | `src/looper/looper-ui.ts` | Input numèric per BPM, tap tempo (botó que calcula BPM de taps successius). |
-
-#### Iteració 3c — Multi-pista (2 → 4 pistes)
-
-| # | Tasca | Fitxers | Detall |
-|---|-------|---------|--------|
-| 3c.1 | Multi-track | `src/looper/looper-engine.ts` | Ampliar a 2 pistes, després 4. Cada pista: controls independents, volum individual, mute/solo. |
-| 3c.2 | Waveform UI | `src/looper/looper-ui.ts` | Visualització de forma d'ona per pista (Canvas o Web Audio AnalyserNode). |
-| 3c.3 | Stop All | `src/looper/looper-engine.ts` | Botó "Stop All" que atura totes les pistes simultàniament. |
-| 3c.4 | Sync entre pistes | `src/looper/looper-clock.ts` | Totes les pistes sincronitzades al mateix clock/quantize. Loop length de la primera pista = referència per les altres. |
+**Done when**: from the UI you can change preset, turn each effect block on/off, and turn the tuner on. The GP-5 responds correctly to every action.
 
 ---
 
-### Fase 4 — Polish
+### Phase 2 — MIDI router: Chocolate Plus → GP-5
 
-**Objectiu**: App robusta, polida i preparada per ús real.
+**Goal**: the Chocolate Plus buttons control the GP-5, with configurable mapping and scenes.
 
-| # | Tasca | Fitxers | Detall |
-|---|-------|---------|--------|
-| 4.1 | Gestió d'errors | tots | `try/catch` a tot arreu. Missatges d'error clars a la UI. Toast notifications. |
-| 4.2 | Desconnexió/reconnexió | `src/midi/midi-manager.ts` | `statechange` handler: si es desconnecta un dispositiu, mostrar warning. Si es reconnecta, reassignar automàticament. |
-| 4.3 | AudioContext resume | `src/audio/audio-manager.ts` | Handler per `suspended` state (Chrome autoplay policy). Botó "Click to enable audio" si cal. |
-| 4.4 | Dark/Light theme | `src/style.css` | CSS custom properties, toggle a la UI. Respectar `prefers-color-scheme`. |
-| 4.5 | Layout responsive | `src/style.css` | Funcional a pantalles de portàtil i tablet. |
-| 4.6 | Keyboard shortcuts | `src/ui/components.ts` | Dreceres de teclat per a totes les accions principals (espai = play/stop, R = record, etc.) |
-| 4.7 | Export/Import complet | `src/storage/persistence.ts` | JSON amb tota la config: mapeigs, escenes, BPM, preferències. |
-| 4.8 | PWA (opcional) | `public/manifest.json`, service worker | Manifest + service worker per funcionament offline. `vite-plugin-pwa` si cal. |
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 2.1 | Routing engine | `src/router/midi-router.ts` | Class `MIDIRouter`: receives messages from the Chocolate Plus, applies mapping rules, sends CC to the GP-5. Rules: `{ inputCC: number, outputCC: number, outputValue?: number, transform?: fn }` |
+| 2.2 | Default mapping | `src/router/default-mappings.ts` | 4 Chocolate Plus buttons → 4 presets (or patch+/patch-/bank+/bank-). Configurable. |
+| 2.3 | Mapping editor | `src/router/mapping-editor.ts` | UI to configure each button: Chocolate Plus button selector (with MIDI learn) + GP-5 action selector (dropdown with all available actions) |
+| 2.4 | MIDI Learn | `src/router/mapping-editor.ts` | "Learn" mode: the user presses "Learn", then a button on the Chocolate Plus; the app captures the CC and assigns it to the selected action |
+| 2.5 | Scenes | `src/router/scenes.ts` | 2+ switchable scenes. Scene A = "GP-5 control" (buttons → presets/blocks). Scene B = "Looper" (buttons → looper). Switching from the UI or from a dedicated Chocolate Plus button. |
+| 2.6 | Mapping persistence | `src/storage/persistence.ts` | Save routing rules and scenes to `localStorage` |
+| 2.7 | Export/Import | `src/storage/persistence.ts` | Export the whole configuration as JSON. Import from a file. |
+
+**Done when**: the 4 Chocolate Plus buttons control the GP-5 according to the configured mapping. The user can change the mapping from the UI (with MIDI learn) and switch between scenes.
 
 ---
 
-## Dependències
+### Phase 3 — Looper
 
-### Producció
-| Paquet | Per a què |
-|--------|-----------|
+**Goal**: working looper with 1 track, recording the GP-5 audio, controllable over MIDI. Then iterate to multi-track.
+
+#### Iteration 3a — Basic looper (1 track)
+
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 3a.1 | Audio Manager | `src/audio/audio-manager.ts` | Centralises `AudioContext`, selects the input (GP-5), creates routing nodes. `latencyHint: "interactive"`, `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` |
+| 3a.2 | Tone.js init | `src/looper/looper-clock.ts` | Initialises `Tone.Transport`, sets BPM. `Tone.start()` on the user's first click (autoplay policy). |
+| 3a.3 | Track engine | `src/looper/looper-track.ts` | Class `LooperTrack`: records with `Tone.Recorder` or `MediaRecorder` + `AudioBuffer`. Operations: `record()`, `play()`, `stop()`, `overdub()`, `undo()`, `clear()`. Stores audio as an in-memory `AudioBuffer`. |
+| 3a.4 | Looper engine | `src/looper/looper-engine.ts` | Orchestrates tracks, manages the output mix. Connects GP-5 input → recorder → playback → speakers. |
+| 3a.5 | Quantize | `src/looper/looper-clock.ts` | Snaps record start/stop to the next beat/bar boundary. Uses `Tone.Transport` to calculate the exact timing. |
+| 3a.6 | Looper UI | `src/looper/looper-ui.ts` | Track view: state (idle/recording/playing/overdub), transport buttons, time indicator, volume. |
+| 3a.7 | MIDI control | `src/router/midi-router.ts` | Mapping in the "Looper" scene: button 1 = record/play, button 2 = stop, button 3 = undo, button 4 = clear. |
+
+**Done when**: with a Chocolate Plus button (or from the UI) a loop is recorded; with another it plays; overdub, undo and clear work. The recorded audio comes from the GP-5.
+
+#### Iteration 3b — Metronome and count-in
+
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 3b.1 | Metronome | `src/looper/looper-metronome.ts` | Click track with `Tone.Synth` or `Tone.MembraneSynth`. Sounds on every beat, accent on beat 1. Toggle on/off. |
+| 3b.2 | Count-in | `src/looper/looper-metronome.ts` | 1 bar of count-in before recording starts (optional). |
+| 3b.3 | BPM UI | `src/looper/looper-ui.ts` | Numeric BPM input, tap tempo (a button that calculates the BPM from successive taps). |
+
+#### Iteration 3c — Multi-track (2 → 4 tracks)
+
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 3c.1 | Multi-track | `src/looper/looper-engine.ts` | Extend to 2 tracks, then 4. Each track: independent controls, individual volume, mute/solo. |
+| 3c.2 | Waveform UI | `src/looper/looper-ui.ts` | Waveform display per track (Canvas or Web Audio `AnalyserNode`). |
+| 3c.3 | Stop All | `src/looper/looper-engine.ts` | "Stop All" button that stops all tracks at the same time. |
+| 3c.4 | Sync between tracks | `src/looper/looper-clock.ts` | All tracks synchronised to the same clock/quantize. The first track's loop length is the reference for the others. |
+
+---
+
+### Phase 4 — Polish
+
+**Goal**: robust, polished app ready for real use.
+
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 4.1 | Error handling | all | `try/catch` everywhere. Clear error messages in the UI. Toast notifications. |
+| 4.2 | Disconnect/reconnect | `src/midi/midi-manager.ts` | `statechange` handler: if a device disconnects, show a warning. If it reconnects, reassign automatically. |
+| 4.3 | AudioContext resume | `src/audio/audio-manager.ts` | Handler for the `suspended` state (Chrome autoplay policy). A "Click to enable audio" button if needed. |
+| 4.4 | Dark/Light theme | `src/style.css` | CSS custom properties, toggle in the UI. Respect `prefers-color-scheme`. |
+| 4.5 | Responsive layout | `src/style.css` | Works on laptop and tablet screens. |
+| 4.6 | Keyboard shortcuts | `src/ui/components.ts` | Keyboard shortcuts for all main actions (space = play/stop, R = record, etc.) |
+| 4.7 | Full export/import | `src/storage/persistence.ts` | JSON with the whole configuration: mappings, scenes, BPM, preferences. |
+| 4.8 | PWA (optional) | `public/manifest.json`, service worker | Manifest + service worker for offline use. `vite-plugin-pwa` if needed. |
+
+---
+
+## Dependencies
+
+### Production
+| Package | Purpose |
+|---------|---------|
 | `tone` | Transport, scheduling, quantize, metronome, recorder |
 
-### Desenvolupament (ja presents)
-| Paquet | Per a què |
-|--------|-----------|
+### Development (already present)
+| Package | Purpose |
+|---------|---------|
 | `typescript` | Type safety |
 | `vite` | Dev server + build |
 
-### Opcional (Fase 4)
-| Paquet | Per a què |
-|--------|-----------|
+### Optional (Phase 4)
+| Package | Purpose |
+|---------|---------|
 | `vite-plugin-pwa` | PWA support |
 
 ---
 
-## Convencions de codi
+## Code conventions
 
-- **TypeScript estricte** (`strict: true` ja configurat)
+- **Strict TypeScript** (`strict: true`, already configured)
 - **ES2022** target, ESNext modules
-- **Mòduls ES natius** (no CommonJS)
-- **Noms de fitxer**: kebab-case (`midi-manager.ts`)
-- **Noms de classes**: PascalCase (`GP5Controller`, `LooperTrack`)
-- **Noms de funcions/variables**: camelCase
-- **Constants**: UPPER_SNAKE_CASE per a valors fixos, camelCase per a objectes de config
-- **CSS**: custom properties per a theming, BEM-ish naming per a classes
-- **Comentaris**: en català (consistent amb el README)
-- **No `any`** — tipar tot, especialment els missatges MIDI
+- **Native ES modules** (no CommonJS)
+- **File names**: kebab-case (`midi-manager.ts`)
+- **Class names**: PascalCase (`GP5Controller`, `LooperTrack`)
+- **Function and variable names**: camelCase
+- **Constants**: UPPER_SNAKE_CASE for fixed values, camelCase for config objects
+- **CSS**: custom properties for theming, BEM-ish class naming
+- **Comments and documentation: in English**
+- **UI languages: Catalan (default), Spanish and English** via `src/i18n/`. The English
+  dictionary (`en.ts`) defines the keys; `ca.ts` and `es.ts` are typed against it, so a missing
+  key fails the build. Static HTML uses `data-i18n` attributes; dynamic UI calls `t()` and
+  re-renders on `onLocaleChange`. Console messages and error logs are not translated.
+- **No `any`** — type everything, especially MIDI messages
 
 ---
 
-## Ordre d'execució recomanat
+## Recommended execution order
 
 ```
-Fase 0  →  Fase 1  →  Fase 2  →  Fase 3a  →  Fase 3b  →  Fase 3c  →  Fase 4
-(1-2d)    (2-3d)     (2d)       (2-3d)      (1d)        (2d)        (2d)
+Phase 0  →  Phase 1  →  Phase 2  →  Phase 3a  →  Phase 3b  →  Phase 3c  →  Phase 4
+(1-2d)     (2-3d)      (2d)        (2-3d)       (1d)         (2d)         (2d)
 ```
 
-**Total estimat: ~12-15 dies** de feina concentrada.
+**Estimated total: ~12–15 days** of focused work.
 
 ---
 
-## Riscos coneguts
+## Known risks
 
-1. **Taula CC del GP-5**: el README diu que és al manual (pàg. ~40). Cal tenir el manual a mà per omplir `gp5-mapping.ts` correctament. Si no es troba, caldrà experimentació.
-2. **Latència del looper**: Web Audio té latència d'entrada. `latencyHint: "interactive"` i desactivar processament d'àudio hauria de ser suficient per practicar, però cal validar-ho amb el hardware real.
-3. **Noms de dispositius MIDI**: poden variar entre SO (Windows vs Linux vs Mac). La detecció per subcadena ha de ser flexible i tenir fallback manual.
-4. **Risc de brick del GP-5 per SysEx**: mai enviar SysEx no documentat. Només CC de la taula oficial (voes.be). El protocol SysEx del GP-5 usa encoding XOR/checksum; de moment fora d'abast.
-5. **Tone.js + Web MIDI**: cal assegurar-se que `Tone.Transport` i el Web MIDI clock no interfereixin. Són independents però cal coordinar el timing del quantize.
+1. **GP-5 CC table**: the README says it is in the manual (page ~40). The manual is needed to fill `gp5-mapping.ts` correctly. If it cannot be found, experimentation will be needed.
+2. **Looper latency**: Web Audio has input latency. `latencyHint: "interactive"` and disabling audio processing should be enough for practice, but this must be validated with the real hardware.
+3. **MIDI device names**: they may vary between operating systems (Windows, Linux, macOS). Substring detection must be flexible and have a manual fallback.
+4. **Risk of bricking the GP-5 with SysEx**: never send undocumented SysEx. Only CCs from the official table (voes.be). The GP-5 SysEx protocol uses XOR/checksum encoding; out of scope for now.
+5. **Tone.js + Web MIDI**: make sure `Tone.Transport` and Web MIDI clock do not interfere with each other. They are independent, but the quantize timing must be coordinated.
