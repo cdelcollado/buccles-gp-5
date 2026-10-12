@@ -26,8 +26,9 @@ src/storage/
 - **Persistence** of preset, modules and tuner in `localStorage`, restored at start without re-sending CCs.
 - Controls are disabled when the GP-5 is not detected (reactive to `statechange`).
 
-### On/off semantics (hypothesis)
-- `0 = off`, `127 = on` for modules and tuner (`MODULE_OFF_VALUE` / `MODULE_ON_VALUE`).
+### On/off semantics
+- `0 = off`, `127 = on` for modules and tuner (`MODULE_OFF_VALUE` / `MODULE_ON_VALUE`). The manual
+  (p. 40) defines 0–63 = off and 64–127 = on, so these values are valid. Still to verify on hardware.
 - "Trigger" controls (patch±/bank±/ctl) send `127` (`TRIGGER_VALUE`).
 
 ## How to validate with the hardware (pending)
