@@ -58,8 +58,7 @@ export const GP5_MODULES: readonly GP5Module[] = [
 
 /**
  * On/off semantics of the modules.
- * HYPOTHESIS: 0 = off, 127 = on. To be validated with the hardware
- * (the equivalent SysEx codes use separate ON and OFF messages).
+ * The manual (p. 40) defines 0-63 = off and 64-127 = on, so 0 and 127 are valid values.
  */
 export const MODULE_OFF_VALUE = 0;
 export const MODULE_ON_VALUE = 127;

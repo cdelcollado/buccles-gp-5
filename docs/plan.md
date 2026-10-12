@@ -13,7 +13,9 @@ Web app to control a **Valeton GP-5** (USB MIDI + audio) and a **Chocolate Plus 
 | iOS | **No**. Desktop only (Chrome/Edge). |
 | Looper audio source | **GP-5 USB** (USB audio interface). |
 | Chocolate Plus configuration | **MIDI Learn** (the app learns any message from the pedal; Cube Suite is not needed). |
-| Looper complexity | **1 track first**, then iterate to 4. |
+| Looper complexity | **2 tracks** in 3a (done, pending hardware), then **4 tracks** in 3c, inspired by Quantiloop. |
+| Current scope (rev. 2026-10-12) | **Daily GP-5 control over USB with documented CCs** + **4-track looper**. No SysEx, no Bluetooth in the MVP. |
+| GP-5 full editing (SysEx / BT) | **Deferred, not excluded.** Gated by the decision on undocumented SysEx (risk 4). The official app covers editing for now. |
 | UI | **Vanilla TypeScript** (no framework). |
 | Audio library | **Tone.js** (transport, scheduling, quantize). |
 
@@ -129,9 +131,84 @@ src/
 
 ---
 
+### Phase 1b — Patch parameter editor (future, gated)
+
+**Goal**: for each GP-5 patch, read, edit, store and restore its parameters from the app.
+
+**Status**: deferred, not in the current scope. It depends on the decision on undocumented SysEx
+(risk 4). Other community web editors do this today, but none of them is verified on our hardware,
+so the rule stays in force until we decide otherwise. The GP-5 manual (Firmware V1.0.3, `docs/1748936007255.GP-5_Online Manual_EN_Firmware V1.0.3.pdf`, p. 40) was checked.
+
+#### Finding from the manual
+
+The MIDI Control Information List has **no per-parameter CCs**. The only addressable items are:
+
+- Patch recall (CC#0), patch volume (CC#7), bank and patch navigation (CC#22–25), song-list navigation (CC#29–30).
+- On/off for the 10 modules (CC#48–57) and the tuner (CC#58), where 0–63 is off and 64–127 is on. CTL (CC#69).
+
+Drive, gain, EQ, delay time and the other parameters cannot be set over MIDI CC. Option A below is
+therefore **not possible** with the documented MIDI.
+
+Patch editing is only available through the **Valeton Suite** mobile app (Bluetooth, iOS/Android).
+The desktop software (Windows/macOS, USB) is for batch management of patches, SnapTone and IR files,
+and firmware. Neither is documented as a MIDI or SysEx protocol.
+
+#### Community sources (checked, not verified on hardware)
+
+- **voes.be** (CC table): same CCs as the manual. Confirms `gp5-mapping.ts`.
+- **rvalladares.com/gp5/sysex.php**: fixed SysEx strings for global settings only (preset select,
+  module on/off, global and preset volume, input gain, screen brightness, footswitch mode). No
+  parameter editing, no header, checksum or request/response format.
+- **helvecioneto/gp5-wc** (Apache-2.0 in `LICENSE`, MIT in the README): BLE SysEx protocol in
+  `ble_sysex.json` with a parameter map (385 parameters; CAB and NS have none). This is the only
+  source with parameter editing. It is reverse-engineered.
+- **AlienStreetClub GP-5 Editor** (`calm-sky-04a298710.3.azurestaticapps.net`): web editor over Web
+  Bluetooth only, with the same BLE UUIDs as gp5-wc. Its bundle implements the same framing, CRC-8 and
+  command set. It can also write (patch save, patch name, global parameters). No MIDI or USB code.
+- **Framing**: over USB the message is `F0` + addzero(CRC-8 + command) + `F7`. The `8080` prefix is a
+  BLE header only. The CRC-8 (poly 0x07, init 0, over the command bytes) matches the rvalladares
+  messages, so the framing is consistent across sources.
+- **Open conflict**: float parameters. gp5-wc says little endian. The editor reads little endian but
+  writes big endian. Not resolved without hardware.
+
+#### Options
+
+| Option | What it needs | Trade-off |
+|---|---|---|
+| A. Per-parameter CCs | A CC for each parameter in the manual | **Ruled out**: the manual has none. |
+| B. SysEx patch dump and restore | A documented SysEx protocol from Valeton | Full read/write and real recovery. Risk of bricking the GP-5. Project rules forbid undocumented SysEx (risk 4). |
+| C. Reverse-engineer Valeton Suite | Capture of the app's traffic (Bluetooth or USB) | Same risk as B, plus no documentation and probable legal and warranty issues. Not recommended. |
+
+**Recommendation**: do not implement parameter editing now. Ask Valeton whether a SysEx or MIDI
+parameter specification exists for the GP-5 (option B). Meanwhile the app can only keep snapshots of
+what it sends (module on/off, volume, patch), which is of limited use. Parameter editing stays in
+Valeton Suite. Revisit only if a documented protocol is obtained.
+
+#### Tasks
+
+| # | Task | Files | Detail |
+|---|------|-------|--------|
+| 1b.1 | Parameter inventory | — | Done: the manual has no parameter CCs. Only module on/off, tuner and volume are addressable (see Finding above). |
+| 1b.2 | Parameter map | `src/gp5/gp5-parameters.ts` | Typed table `{ module, name, cc, range, unit }`, the same style as `gp5-mapping.ts`. |
+| 1b.3 | Patch editor UI | `src/gp5/gp5-patch-editor.ts` | Select a preset, edit its addressable parameters with sliders or steppers. Each change sends its CC at once. |
+| 1b.4 | Local patch snapshots | `src/storage/persistence.ts` | Store the parameter values the app has sent for each preset, named and dated. Keyed by preset number. |
+| 1b.5 | Restore | `src/gp5/gp5-patch-editor.ts` | Re-send a stored snapshot to the GP-5 and update the screen. Only addressable parameters are restored. |
+| 1b.6 | Export/Import | `src/storage/persistence.ts` | Snapshots included in the JSON export (Phase 4.7). |
+
+**Limitations to show in the UI**: the app cannot read a patch's real values from the GP-5. Values
+shown are the last ones the app sent, unless option B is adopted. A snapshot is only as complete as
+the parameters that have a CC.
+
+**Done when**: a user can open a preset, change an addressable parameter, see the GP-5 respond,
+save a snapshot, change the parameter again and restore the snapshot, with the GP-5 following each step.
+
+---
+
 ### Phase 2 — MIDI router: Chocolate Plus → GP-5
 
 **Goal**: the Chocolate Plus buttons control the GP-5, with configurable mapping and scenes.
+
+**Status**: deferred. The Chocolate Plus is dedicated to the looper (see `docs/phase-3a-looper.md`).
 
 | # | Task | Files | Detail |
 |---|------|-------|--------|
@@ -165,7 +242,10 @@ src/
 
 **Done when**: with a Chocolate Plus button (or from the UI) a loop is recorded; with another it plays; overdub, undo and clear work. The recorded audio comes from the GP-5.
 
-#### Iteration 3b — Metronome and count-in
+#### Iteration 3b — Metronome, count-in and live groove
+
+Full scope and tasks: [phase-3b-groove.md](phase-3b-groove.md). The original items below are kept
+for reference; the groove engine (3b.4–3b.9) is added in that document.
 
 | # | Task | Files | Detail |
 |---|------|-------|--------|
@@ -175,6 +255,9 @@ src/
 
 #### Iteration 3c — Multi-track (2 → 4 tracks)
 
+**Status**: next after 3a is validated with hardware. Target: a 4-track looper inspired by the
+Quantiloop user guide (`docs/quantiloop2.pdf`, chapters 1–8).
+
 | # | Task | Files | Detail |
 |---|------|-------|--------|
 | 3c.1 | Multi-track | `src/looper/looper-engine.ts` | Extend to 2 tracks, then 4. Each track: independent controls, individual volume, mute/solo. |
@@ -183,6 +266,21 @@ src/
 | 3c.4 | Sync between tracks | `src/looper/looper-clock.ts` | All tracks synchronised to the same clock/quantize. The first track's loop length is the reference for the others. |
 
 ---
+
+#### Iteration 3c — Quantiloop-inspired features
+
+| # | Feature | Quantiloop reference | Detail |
+|---|---|---|---|
+| 3c.5 | Play styles | Part 1 ch. 4 (Parallel, Serial, Serial Master, Mixed) | Per-preset setting: how tracks start and follow each other. |
+| 3c.6 | DUB mode | Part 1 ch. 6 | Tap while playing stops the track instead of overdubbing. Toggle from the UI or MIDI. |
+| 3c.7 | Stop all (smooth vs immediate) | MIDI actions, ch. 8 | "Stop" follows the phrase end; "Stop immediate" cuts now. |
+| 3c.8 | Track-specific actions | MIDI actions, ch. 8 | Arm, stop, stop/start, undo/redo, clear per track, and "current track". |
+| 3c.9 | Hold and double-tap actions | MIDI assignments, ch. 8 | A pedal button can have up to three actions (tap, hold, double-tap). Extends MIDI Learn in `looper-mapping.ts`. |
+| 3c.10 | Presets | Part 2 ch. 6 | Save and recall loop settings (BPM, play style, DUB mode, track mapping). Audio is not saved unless we decide to. |
+| 3c.11 | Track volume and pan | MIDI actions, ch. 8 | Per track, from the UI or an expression pedal. |
+| 3c.12 | Tap tempo | Ch. 8 (Tap Tempo) | Already in 3b; reuse it. |
+
+Scope is decided per feature. The first milestone is 3c.1–3c.4 (4 tracks, waveform, stop all, sync between tracks).
 
 ### Phase 4 — Polish
 
@@ -243,7 +341,8 @@ src/
 ## Recommended execution order
 
 ```
-Phase 0  →  Phase 1  →  Phase 2  →  Phase 3a  →  Phase 3b  →  Phase 3c  →  Phase 4
+Phase 0  →  Phase 1  →  Phase 3a  →  Phase 3b  →  Phase 3c  →  Phase 4
+                    (deferred: Phase 1b, Phase 2)
 (1-2d)     (2-3d)      (2d)        (2-3d)       (1d)         (2d)         (2d)
 ```
 
@@ -256,5 +355,7 @@ Phase 0  →  Phase 1  →  Phase 2  →  Phase 3a  →  Phase 3b  →  Phase 3c
 1. **GP-5 CC table**: the README says it is in the manual (page ~40). The manual is needed to fill `gp5-mapping.ts` correctly. If it cannot be found, experimentation will be needed.
 2. **Looper latency**: Web Audio has input latency. `latencyHint: "interactive"` and disabling audio processing should be enough for practice, but this must be validated with the real hardware.
 3. **MIDI device names**: they may vary between operating systems (Windows, Linux, macOS). Substring detection must be flexible and have a manual fallback.
-4. **Risk of bricking the GP-5 with SysEx**: never send undocumented SysEx. Only CCs from the official table (voes.be). The GP-5 SysEx protocol uses XOR/checksum encoding; out of scope for now.
+4. **Risk of bricking the GP-5 with SysEx**: never send undocumented SysEx. Only CCs from the official table (manual p. 40, confirmed by voes.be). Community SysEx references (gp5-wc, rvalladares, the AlienStreetClub editor) agree on framing and CRC-8, but they are unverified on hardware, and they disagree on float endianness. None is a basis for writes. Out of scope for the current scope. If the decision changes, start with read-only requests and
+validate on hardware before any write. Community web editors show the protocol works in practice,
+but none of it is verified here, so it is not a basis for writes until we test it ourselves.
 5. **Tone.js + Web MIDI**: make sure `Tone.Transport` and Web MIDI clock do not interfere with each other. They are independent, but the quantize timing must be coordinated.
