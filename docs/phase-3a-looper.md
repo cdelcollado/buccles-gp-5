@@ -1,29 +1,6 @@
 # Phase 3a — Looper MVP (2 tracks)
 
-**Status**: implemented (pending hardware validation)
-
-## What was built
-
-- `src/looper/looper-clock.ts` — BPM + bar grid via `Tone.Transport`; schedules callbacks at the
-  next bar boundary with the exact audio time.
-- `src/looper/looper-track.ts` — per-track audio (mono), layers, undo stack, looping playback.
-- `src/looper/looper-mapping.ts` — MIDI Learn + default PC mappings for the 4 pedal buttons.
-- `src/looper/looper-engine.ts` — owns the 2 tracks, the capture `ScriptProcessorNode`, master
-  loop length and phase; dispatches looper actions.
-- `src/looper/looper-ui.ts` — transport, BPM, track cards and MIDI Learn UI.
-- `src/audio/audio-manager.ts` — added `getStream()` (share the GP-5 input with the looper).
-- `src/storage/persistence.ts` — persist BPM + bindings to `localStorage`.
-
-Timing model: the first loop sets the master length (whole number of bars) and phase; all edges
-snap to bar boundaries. Capture is sample-gated by the `ScriptProcessorNode` (mono downmix;
-stereo deferred to 3c).
-
-## Notes for hardware validation
-
-- The default pedal bindings are **guesses** (Program Change, ch1, data1 0–3). Rebind via
-  MIDI Learn if the Chocolate Plus sends CC/Note instead.
-- `clear` has no default pedal button (only 4 buttons); assign it via MIDI Learn or use the UI.
-- Validate input latency and quantize feel with the GP-5 and the Chocolate Plus over USB.
+**Status**: implemented and compiling; pending hardware validation with the GP-5 and the Chocolate Plus.
 
 ## Goal
 
@@ -35,7 +12,7 @@ This document supersedes the "1 track" scoping in `docs/plan.md` (Phase 3, itera
 the MVP ships **2 tracks** from the start. Iterations 3b (metronome/count-in) and 3c
 (2 → 4 tracks) remain as follow-ups.
 
-## Decisions (reconfirmed)
+## Decisions
 
 | Decision | Answer |
 |---|---|
@@ -56,10 +33,22 @@ the MVP ships **2 tracks** from the start. Iterations 3b (metronome/count-in) an
 
 - `AudioContext` with `latencyHint: "interactive"`.
 - Input `MediaStream` requested with `echoCancellation: false`, `noiseSuppression: false`,
-  `autoGainControl: false` (already done in `audio-manager.ts` during Phase 0).
+  `autoGainControl: false` (set in `audio-manager.ts`).
 - A `MediaStreamAudioSourceNode` feeds the looper; the looper mix is routed to
   `AudioContext.destination`.
-- `Tone.start()` must run on the first user gesture (autoplay policy).
+- `Tone.start()` runs on the first user gesture (autoplay policy).
+
+## What was built
+
+- `src/looper/looper-clock.ts` — BPM + bar grid via `Tone.Transport`; schedules callbacks at the
+  next bar boundary with the exact audio time.
+- `src/looper/looper-track.ts` — per-track audio (mono), layers, undo stack, looping playback.
+- `src/looper/looper-mapping.ts` — MIDI Learn + default PC mappings for the 4 pedal buttons.
+- `src/looper/looper-engine.ts` — owns the 2 tracks, the capture `ScriptProcessorNode`, master
+  loop length and phase; dispatches looper actions.
+- `src/looper/looper-ui.ts` — transport, BPM, track cards and MIDI Learn UI.
+- `src/audio/audio-manager.ts` — `getStream()` shares the GP-5 input with the looper.
+- `src/storage/persistence.ts` — persists BPM and bindings to `localStorage`.
 
 ## Track model
 
@@ -68,60 +57,48 @@ Each track is an independent record/playback lane that shares the same loop leng
 - **State machine**: `empty` → `recording` → `playing` → `overdubbing` → `playing` (→ `empty` on clear).
 - **Master loop length** is set by the **first** recording; every subsequent record/overdub on
   either track is quantized to that length (whole number of bars).
-- Both tracks stay synchronized to the same `Tone.Transport` clock; the master length is the
-  reference for both.
+- Both tracks stay synchronized to the same `Tone.Transport` clock.
 - Per-track operations: `record`, `play/stop`, `overdub`, `undo`, `clear`, plus `stop all`.
+- **Focused track**: the lane that `record`, `overdub`, `undo` and `clear` act on. Shown in the UI
+  and switchable from the pedal (button 4) or the screen.
+- The **BPM is locked** once something is recorded (clear the tracks to change it).
 
 ## Quantize & timing
 
-- `Tone.Transport` provides the master BPM and bar/beat position.
-- `record`, `stop`, and `overdub` edges **snap to the next bar boundary** (no drift).
-- Loop length is always a whole number of bars (e.g. 4 bars at the current BPM).
-- BPM is user-configurable in the UI and persisted.
+- The first loop sets the master length (a whole number of bars) and the phase.
+- `record`, `stop`, and `overdub` edges **snap to the next bar boundary** (no drift), with
+  sample-accurate capture by the `ScriptProcessorNode` (mono downmix; stereo deferred to 3c).
+- On the first loop, `record` is tap-to-start / tap-to-close. Afterwards (empty track or overdub),
+  `record` runs **one automatic pass** aligned to the master.
 
 ## MIDI control (Chocolate Plus, MIDI Learn)
 
-The app listens to the Chocolate Plus input and maps any incoming message to a looper action.
-
 - **MIDI Learn**: the user selects an action, presses "Learn", then presses a pedal button.
-  The app stores the captured message (status + data bytes) as the trigger for that action.
-- **Default mapping** (4 buttons), so it works without any configuration:
+  The app stores the captured message (status + data bytes), not just a CC number, so PC, CC
+  and Note triggers all work.
+- **Default mapping** (4 buttons), so it works without configuration. **These are hypotheses**
+  (Program Change, ch1, data1 0–3):
 
-  | Button | Action |
-  |---|---|
-  | 1 | Record / Overdub (focused track) |
-  | 2 | Play / Stop (all) |
-  | 3 | Undo (focused track) |
-  | 4 | Switch focused track (A ↔ B) |
+  | Button | Action | Assumed message |
+  |---|---|---|
+  | 1 | Record / Overdub (focused track) | PC#0 ch1 |
+  | 2 | Play / Stop all | PC#1 ch1 |
+  | 3 | Undo (focused track) | PC#2 ch1 |
+  | 4 | Switch focused track (A ↔ B) | PC#3 ch1 |
 
-- "Focused track" is the lane that `record`, `overdub`, `undo` and `clear` act on; it is shown
-  in the UI and switchable from the pedal (button 4) or the screen.
+- `clear` has no default button (only 4 buttons): assign it via MIDI Learn or use the UI.
 
-## File structure (new)
+## How to test
 
-```
-src/looper/
-├── looper-engine.ts      # LooperEngine: owns tracks, mix, audio routing, stop all
-├── looper-track.ts       # LooperTrack: record/play/stop/overdub/undo/clear
-├── looper-clock.ts       # Tone.Transport init, BPM, quantize scheduling
-├── looper-mapping.ts     # MIDI Learn: action <-> captured MIDI message
-└── looper-ui.ts          # Transport buttons, BPM, track indicators, focus
-
-src/audio/
-└── audio-manager.ts      # (extended) central AudioContext + input routing for the looper
+```bash
+cd ~/Projects/buccles-gp-5 && npm run dev
 ```
 
-## Tasks
-
-| # | Task | File(s) | Detail |
-|---|------|---------|--------|
-| 3a.1 | Audio routing | `src/audio/audio-manager.ts` | Expose the central `AudioContext` and a `MediaStreamAudioSourceNode` from the GP-5 input; route into the looper. |
-| 3a.2 | Clock / Tone.js init | `src/looper/looper-clock.ts` | `Tone.Transport` init, BPM get/set, bar/beat math, `Tone.start()` on first gesture. |
-| 3a.3 | Track engine | `src/looper/looper-track.ts` | `LooperTrack` with the state machine and per-track ops; stores audio in memory. |
-| 3a.4 | Looper engine | `src/looper/looper-engine.ts` | Owns 2 tracks, master length, mix to destination, `stopAll`. |
-| 3a.5 | Quantize | `src/looper/looper-clock.ts` | Snap record/stop/overdub edges to the next bar; enforce whole-bar loop length. |
-| 3a.6 | Looper UI | `src/looper/looper-ui.ts` | Track state indicators, transport buttons, BPM input, focus highlight. |
-| 3a.7 | MIDI control | `src/looper/looper-mapping.ts` | MIDI Learn + default mapping; route Chocolate Plus messages to looper actions. |
+1. Open **http://localhost:5173/** in Chrome or Edge.
+2. In "Audio test", select the GP-5 as input.
+3. In "Looper", press **"Activate the looper"** (a user gesture that opens the input and starts Tone).
+4. Press button 1 on the pedal (or "Rec/Overdub" on Track A) to record; press again to close the loop.
+5. Test Track B, overdub, undo, clear and "Play/Stop all" from the UI or the pedal.
 
 ## Acceptance criteria
 
@@ -133,24 +110,32 @@ src/audio/
 5. MIDI Learn can rebind any action to any pedal message.
 6. BPM is editable and persisted (`localStorage`).
 
+## Pending validation with hardware
+
+1. **Real Chocolate Plus messages** (PC vs CC vs Note). If they differ from the defaults, rebind
+   with MIDI Learn.
+2. **Input latency** from the GP-5 to the browser. This decides whether look-ahead scheduling is needed.
+3. **Quantize feel**: the loop closes exactly on the bar and the master length feels right.
+   This may call for a count-in (deferred to 3b).
+
 ## Risks
 
 - **Input latency**: Web Audio has non-negligible input latency. `latencyHint: "interactive"`
-  plus disabled processing is already applied; must be validated with real hardware.
-- **Autoplay policy**: `AudioContext`/`Tone` start requires a user gesture; handle the
-  `suspended` state and offer a "click to enable audio" path.
-- **Quantize feel**: snapping to bar boundaries changes the loop start; validate that the
-  master length and BPM feel right (may need a count-in → deferred to 3b).
-- **Pedal message variety**: the Chocolate Plus can send CC, Note or PC. MIDI Learn must store
-  the full message (status + data), not just a CC number.
+  and disabled processing are applied; validate with real hardware.
+- **Autoplay policy**: `AudioContext`/`Tone` start requires a user gesture; the `suspended` state
+  needs a "click to enable audio" path.
+- **Pedal message variety**: the Chocolate Plus can send CC, Note or PC.
+- **ScriptProcessorNode** is deprecated; migrating to an AudioWorklet is planned (see `docs/plan.md`).
 
 ## Out of scope (deferred)
 
-- Metronome and count-in → **Phase 3b**.
+- Metronome, count-in, tap tempo → **Phase 3b**.
 - 2 → 4 tracks, waveform display, per-track volume/mute/solo → **Phase 3c**.
-- Hybrid scene (GP-5 + looper) and the full router → **Phase 2** (deferred).
+- Hybrid scene (GP-5 + looper) and the full router → **Phase 2**.
 
-## Next step
+## Next steps
 
-Implement tasks 3a.1 → 3a.7, then validate against the acceptance criteria with the GP-5 and
-the Chocolate Plus connected over USB.
+- Validate the points above with the hardware, then reconfigure the mapping if needed.
+- **Phase 3b**: metronome, count-in, tap tempo.
+- **Phase 3c**: 4 tracks, waveform, volume/mute/solo per track.
+- **Phase 2 (hybrid)**: add a "GP-5" scene to the same pedal (the scene architecture is already planned).

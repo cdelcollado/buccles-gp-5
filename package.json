@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "description": "App web per controlar un Valeton GP-5 i el Chocolate Plus (M-VAVE), amb looper integrat.",
+  "description": "Web app to control a Valeton GP-5 and a Chocolate Plus (M-VAVE), with a built-in looper.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
