@@ -5,3 +5,6 @@ dist/
 
 # Documentació de referència (PDFs grans: manuals, apps de referència)
 docs/*.pdf
+
+# Local Claude Code settings (personal, not shared)
+.claude/settings.local.json
