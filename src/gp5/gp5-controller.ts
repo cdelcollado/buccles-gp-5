@@ -4,6 +4,7 @@
 // so this class keeps a local state and emits it to subscribers.
 
 import type { MIDIOutput } from '../midi/midi.types';
+import { MidiPacer } from '../midi/midi-pacer';
 import {
   GP5_CHANNEL,
   GP5_CC,
@@ -37,6 +38,8 @@ function clamp(value: number, [min, max]: readonly [number, number]): number {
  */
 export class GP5Controller {
   private output: MIDIOutput | null = null;
+  /** Spaces out CC messages and merges queued absolute values (see sendCC). */
+  private readonly pacer = new MidiPacer((bytes) => this.output?.send(bytes));
 
   private currentPreset: number | null = null;
   private moduleState = new Map<GP5ModuleId, boolean>();
@@ -51,6 +54,8 @@ export class GP5Controller {
   /** Sets the GP-5 MIDI output (or null when it is disconnected). */
   setOutput(output: MIDIOutput | null): void {
     this.output = output;
+    // Messages still queued belong to the previous port; do not send them to the new one.
+    this.pacer.clear();
   }
 
   get isConnected(): boolean {
@@ -122,19 +127,19 @@ export class GP5Controller {
   /** Switches to the given preset (0-99). */
   recallPreset(preset: number): void {
     const p = clamp(preset, PATCH_RANGE);
-    this.sendCC(GP5_CC.patchRecall, p);
+    this.sendCC(GP5_CC.patchRecall, p, true);
     this.currentPreset = p;
     this.emitPresetChange(p);
   }
 
   /** Sets the patch volume (0-100). */
   setPatchVolume(volume: number): void {
-    this.sendCC(GP5_CC.patchVolume, clamp(volume, PATCH_VOLUME_RANGE));
+    this.sendCC(GP5_CC.patchVolume, clamp(volume, PATCH_VOLUME_RANGE), true);
   }
 
   /** Turns an effect module on/off. */
   setModule(id: GP5ModuleId, on: boolean): void {
-    this.sendCC(this.moduleCC(id), on ? MODULE_ON_VALUE : MODULE_OFF_VALUE);
+    this.sendCC(this.moduleCC(id), on ? MODULE_ON_VALUE : MODULE_OFF_VALUE, true);
     this.moduleState.set(id, on);
     this.emitModuleChange(id, on);
   }
@@ -162,7 +167,7 @@ export class GP5Controller {
 
   /** Turns the tuner on/off. */
   setTuner(on: boolean): void {
-    this.sendCC(GP5_CC.tuner, on ? MODULE_ON_VALUE : MODULE_OFF_VALUE);
+    this.sendCC(GP5_CC.tuner, on ? MODULE_ON_VALUE : MODULE_OFF_VALUE, true);
     this.tunerOn = on;
     this.emitTunerChange(on);
   }
@@ -180,14 +185,19 @@ export class GP5Controller {
     return mod.cc;
   }
 
-  private sendCC(cc: number, value: number): void {
+  /**
+   * Queues a CC for the GP-5. `absolute` marks a value that replaces the previous one (preset, volume, module,
+   * tuner): while such a CC still waits in the queue, a newer value replaces it, so a fast drag sends only the
+   * latest. Relative triggers (patch and bank steps) are not absolute: every press must reach the pedal.
+   */
+  private sendCC(cc: number, value: number, absolute = false): void {
     if (!this.output) {
       console.warn('[GP5] No hi ha cap sortida GP-5 seleccionada.');
       return;
     }
     // Control Change status on channel 1: 0xB0 | (channel - 1).
     const status = 0xb0 | (GP5_CHANNEL - 1);
-    this.output.send([status, cc, value]);
+    this.pacer.enqueue([status, cc, value], absolute ? `cc${cc}` : undefined);
   }
 
   private emitPresetChange(preset: number): void {
