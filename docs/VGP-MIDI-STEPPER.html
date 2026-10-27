@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Valeton GP-5 Stage & Groove Commander</title>
+    <!-- FontAwesome für Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-bg: #1e293b;
+            --accent: #ef4444;
+            --accent-hover: #dc2626;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --learning: #eab308;
+            --active-switch: #10b981;
+            --active-border: #34d399;
+            --drum-accent: #8b5cf6;
+            --drum-hover: #7c3aed;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; width: 100%; flex: 1; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--accent); }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            color: #38bdf8;
+        }
+
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover { background-color: var(--accent-hover); }
+        button.secondary { background-color: #475569; }
+        button.secondary:hover { background-color: #64748b; }
+        button.learning-active { background-color: var(--learning); color: #000; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .midi-config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media(max-width: 768px) {
+            .midi-config-grid { grid-template-columns: 1fr; }
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        select { width: 100%; }
+
+        /* Foot-Switch Grid Builder */
+        .foot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .foot-switch-card {
+            background: #111827;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .foot-switch-card.learning {
+            border-color: var(--learning);
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+        }
+
+        .foot-switch-card.active-preset {
+            border-color: var(--active-border);
+            background: rgba(16, 185, 129, 0.1);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        }
+
+        .foot-switch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .big-trigger-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        .big-trigger-btn:hover { background: #2563eb; }
+
+        .foot-switch-card.active-preset .big-trigger-btn {
+            background: var(--active-switch);
+        }
+        .foot-switch-card.active-preset .big-trigger-btn:hover {
+            background: #059669;
+        }
+
+        .log-box {
+            background: #04060b;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            height: 120px;
+            overflow-y: auto;
+            color: #cbd5e1;
+        }
+
+        /* Groove Master & 5 Taster Grid */
+        .groove-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .groove-card {
+            background: #111827;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .groove-card.active-groove {
+            border-color: var(--drum-accent);
+            background: rgba(139, 92, 246, 0.1);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.25);
+        }
+        .groove-card.learning {
+            border-color: var(--learning);
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+        }
+
+        .groove-trigger-btn {
+            background: var(--drum-accent);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        .groove-trigger-btn:hover { background: var(--drum-hover); }
+        .groove-card.active-groove .groove-trigger-btn { background: #7c3aed; }
+
+        /* Footer */
+        .app-footer {
+            margin-top: 40px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .coffee-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .coffee-btn:hover {
+            background: rgba(245, 158, 11, 0.25);
+            color: #fcd34d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🎸 V-GP MIDI Stepper</h1>
+        <div id="connectionStatus" style="font-size: 0.9rem; color: var(--text-muted);">Status: MIDI Disconnected</div>
+    </header>
+
+    <!-- 1. MIDI Hardware Configuration -->
+    <div class="card">
+        <h2>1. Hardware MIDI Interfaces (USB Cable)</h2>
+        <div class="midi-config-grid">
+            <div>
+                <label style="font-size:0.85rem; color:var(--text-muted);">MIDI Output (To Pedal):</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <select id="midiOutputSelect"><option value="">-- Select Output --</option></select>
+                </div>
+            </div>
+            <div>
+                <label style="font-size:0.85rem; color:var(--text-muted);">MIDI Input (For external footswitch / MIDI Learn):</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <select id="midiInputSelect"><option value="">-- Select Input --</option></select>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 15px; display:flex; gap:10px;">
+            <button onclick="initMIDIHardware()">Connect MIDI Ports & Listen</button>
+        </div>
+    </div>
+
+    <!-- 2. Switch Count & Set Management -->
+    <div class="card">
+        <h2>2. Target Device & Gig Set Management</h2>
+        <div class="control-row">
+            <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span>Target Device:</span>
+                    <select id="deviceModelSelect" onchange="updateDeviceLimits()" style="width: 145px;">
+                        <option value="99">GP-5 (0-99)</option>
+                        <option value="99">GP-50 (0-99)</option>
+                        <option value="99">GP-100 (0-99 User)</option>
+                        <option value="199">GP-150 / 180 (0-199)</option>
+                    </select>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span>Patch Switches:</span>
+                    <select id="buttonCountSelect" onchange="generateFootSwitches()" style="width: 100px;">
+                        <option value="2">2 Switches</option>
+                        <option value="3">3 Switches</option>
+                        <option value="4" selected>4 Switches</option>
+                        <option value="6">6 Switches</option>
+                        <option value="8">8 Switches</option>
+                        <option value="10">10 Switches</option>
+                        <option value="12">12 Switches</option>
+                        <option value="14">14 Switches</option>
+                        <option value="16">16 Switches</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <!-- Dropdown statt dem alten Textfeld -->
+                <select id="setSelectDropdown" onchange="loadSelectedSetFromDropdown()" style="width: 180px;">
+                    <option value="">-- Saved Sets --</option>
+                </select>
+                
+                <button class="secondary" onclick="saveNewSetPrompt()">Save New Set</button>
+                <button class="secondary" onclick="deleteSelectedSet()">Delete Set</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Interactive Footswitch Board (GP-5 Patches) -->
+    <div class="card">
+        <h2>3. Virtual & Hardware Footswitch Assignment (Sends CC#0)</h2>
+        <div id="footGridContainer" class="foot-grid"></div>
+    </div>
+
+    <!-- 3b. Expression Pedal Configuration -->
+    <div class="card">
+        <h2>4. Expression Pedal Assignment</h2>
+        <div id="pedalGridContainer" class="foot-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <!-- Hier werden die Pedale per JS geladen -->
+        </div>
+    </div>
+
+    <!-- 4. ADVANCED LIVE GROOVE CONTROL WITH SONG STRUCTURE -->
+    <div class="card">
+        <h2 onclick="toggleGrooveSection()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin: 0;">
+            <span>4. 🥁 Live Groove Control (BPM 95 Standard, Song Parts & Timing Engine)</span>
+            <i id="grooveToggleIcon" class="fa-solid fa-chevron-down" style="font-size: 0.8rem; transition: transform 0.3s;"></i>
+        </h2>
+        
+        <!-- Standardmäßig eingeklappt (display: none;) -->
+        <div id="grooveSectionContent" style="display: none; margin-top: 15px;">
+            
+            <!-- Song Part Control with integrated MIDI-Learn -->
+            <div id="songPartContainer" style="display:flex; gap:10px; align-items:center; margin-bottom: 15px; background: #111827; padding: 12px; border-radius: 6px; border: 1px solid var(--border);">
+                <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold;">Song Part:</span>
+                
+                <button id="part_btn_intro" class="secondary part-btn active-part" onclick="setSongPart('intro')">
+                    Intro <span onclick="event.stopPropagation(); startPartLearn('intro')" style="margin-left:5px; font-size:0.6rem; background:#444; padding:2px 5px; border-radius:3px; cursor:pointer;">Learn</span>
+                </button>
+                <button id="part_btn_verse" class="secondary part-btn" onclick="setSongPart('verse')">
+                    Verse <span onclick="event.stopPropagation(); startPartLearn('verse')" style="margin-left:5px; font-size:0.6rem; background:#444; padding:2px 5px; border-radius:3px; cursor:pointer;">Learn</span>
+                </button>
+                <button id="part_btn_break" class="secondary part-btn" onclick="setSongPart('break')">
+                    Break <span onclick="event.stopPropagation(); startPartLearn('break')" style="margin-left:5px; font-size:0.6rem; background:#444; padding:2px 5px; border-radius:3px; cursor:pointer;">Learn</span>
+                </button>
+                <button id="part_btn_chorus" class="secondary part-btn" onclick="setSongPart('chorus')">
+                    Chorus <span onclick="event.stopPropagation(); startPartLearn('chorus')" style="margin-left:5px; font-size:0.6rem; background:#444; padding:2px 5px; border-radius:3px; cursor:pointer;">Learn</span>
+                </button>
+                
+                <div id="currentPartDisplay" style="margin-left: auto; font-size: 0.85rem; color: var(--drum-accent); font-weight: bold;">Part: INTRO</div>
+            </div>
+
+            <!-- Groove Set Management -->
+            <div class="control-row" style="margin-bottom: 15px; background: #111827; padding: 12px; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="text" id="grooveSetNameInput" placeholder="Groove Set Name">
+                    <button class="secondary" onclick="saveGrooveSet()">Save Groove Set</button>
+                    <button class="secondary" onclick="loadGrooveSet()">Load Groove Set</button>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="secondary" onclick="prevGrooveSet()"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+                    <button class="secondary" onclick="nextGrooveSet()">Next <i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:15px; align-items:center; margin-bottom: 10px;">
+                <button id="masterDrumToggle" class="drum-btn" onclick="toggleMasterDrum()">Master Start / Stop Groove</button>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Precise Lookahead Clock active.</span>
+            </div>
+
+            <div id="grooveGridContainer" class="groove-grid"></div>
+        </div>
+    </div>
+
+    <!-- 5. Live Log -->
+    <div class="card">
+        <h2>MIDI Protocol & Live Monitor</h2>
+        <div id="logBox" class="log-box">Ready. Please connect MIDI ports and select controller.</div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>&copy; 2026 Uwe Müller (LVX AETERNA) | Built with <i class="fa-solid fa-heart" style="color: var(--accent);"></i> for Valeton GP-5 | GP-50 | GP-100 | GP-150 & GP 180 users</p>
+        <a href="https://buy.stripe.com/dRm14p0vx47q4NzdjrdjO00" target="_blank" class="coffee-btn">
+            <i class="fa-solid fa-mug-hot"></i>
+            <span>Buy me a coffee</span>
+        </a>
+    </footer>
+</div>
+
+<script>
+    let midiAccessGlobal = null;
+    let selectedOutputDevice = null;
+    let selectedInputDevice = null;
+    let activeLearningIndex = null;
+    let activeGrooveLearnIndex = null;
+    let activePresetIndex = null;
+    let activePartLearnName = null;
+    
+    let footSwitchesConfig = [];
+    let maxPresetLimit = 99; // Standard für GP-5
+
+    function updateDeviceLimits() {
+        const select = document.getElementById('deviceModelSelect');
+        maxPresetLimit = parseInt(select.value);
+        
+        // Alle Eingabefelder im Grid sofort auf das neue Maximum begrenzen
+        document.querySelectorAll('.preset-input').forEach(input => {
+            input.max = maxPresetLimit;
+            if (parseInt(input.value) > maxPresetLimit) {
+                input.value = maxPresetLimit;
+            }
+        });
+        
+        // Taster-Grid einmal neu generieren, damit die Limits greifen
+        generateFootSwitches();
+    }
+    
+    // 5 Groove Taster Standardkonfiguration
+    let grooveSwitchesConfig = [
+        { label: "Rock Groove", style: "rock", bpm: 95, midiCc: null },
+        { label: "Metal Beat", style: "metal", bpm: 110, midiCc: null },
+        { label: "Pop Groove", style: "pop", bpm: 95, midiCc: null },
+        { label: "Blues Shuffle", style: "shuffle", bpm: 90, midiCc: null },
+        { label: "Punk Drive", style: "punk", bpm: 130, midiCc: null }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        generateFootSwitches();
+        generateGrooveSwitches();
+        generatePedalUI();
+        setupBrowserMIDI();
+    });
+
+    function logToUI(msg) {
+        const box = document.getElementById('logBox');
+        box.innerHTML += `<br>> ${msg}`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    async function setupBrowserMIDI() {
+        if (!navigator.requestMIDIAccess) {
+            alert("Web MIDI is not supported by this browser.");
+            return;
+        }
+        try {
+            midiAccessGlobal = await navigator.requestMIDIAccess({ sysex: true });
+            updateMidiPortDropdowns();
+            midiAccessGlobal.onstatechange = () => updateMidiPortDropdowns();
+        } catch (err) {
+            logToUI("MIDI permission error: " + err);
+        }
+    }
+
+    function updateMidiPortDropdowns() {
+        const outSelect = document.getElementById('midiOutputSelect');
+        const inSelect = document.getElementById('midiInputSelect');
+        
+        outSelect.innerHTML = '<option value="">-- Select GP-5 Output --</option>';
+        inSelect.innerHTML = '<option value="">-- Select MIDI Controller Input --</option>';
+
+        for (let output of midiAccessGlobal.outputs.values()) {
+            let opt = document.createElement('option');
+            opt.value = output.id;
+            opt.text = output.name;
+            if (output.name.toLowerCase().includes('gp') || output.name.toLowerCase().includes('valeton')) {
+                opt.selected = true;
+            }
+            outSelect.appendChild(opt);
+        }
+
+        for (let input of midiAccessGlobal.inputs.values()) {
+            let opt = document.createElement('option');
+            opt.value = input.id;
+            opt.text = input.name;
+            inSelect.appendChild(opt);
+        }
+    }
+
+    function initMIDIHardware() {
+        const outId = document.getElementById('midiOutputSelect').value;
+        const inId = document.getElementById('midiInputSelect').value;
+        
+        if (!outId) {
+            alert("Please select a MIDI output for the GP-5!");
+            return;
+        }
+
+        selectedOutputDevice = midiAccessGlobal.outputs.get(outId);
+        
+        if (inId) {
+            if (selectedInputDevice) {
+                selectedInputDevice.onmidimessage = null;
+            }
+            selectedInputDevice = midiAccessGlobal.inputs.get(inId);
+            selectedInputDevice.onmidimessage = handleIncomingMIDIMessage;
+            logToUI(`MIDI Input active: ${selectedInputDevice.name} (Listening for controller...)`);
+        }
+
+        const statusEl = document.getElementById('connectionStatus');
+        statusEl.innerText = "Connected: " + selectedOutputDevice.name;
+        statusEl.style.color = "var(--success)";
+        logToUI(`Successfully connected to GP-5 output: ${selectedOutputDevice.name}`);
+    }
+
+    function generateFootSwitches() {
+        const count = parseInt(document.getElementById('buttonCountSelect').value);
+        const container = document.getElementById('footGridContainer');
+        container.innerHTML = "";
+
+        let oldConfig = [...footSwitchesConfig];
+        footSwitchesConfig = [];
+
+        for (let i = 0; i < count; i++) {
+            let defaultPreset = i < maxPresetLimit ? i : 0;
+            let existing = oldConfig[i] || {
+                label: `Switch ${i + 1}`,
+                preset: defaultPreset,
+                midiCcTrigger: null,
+                midiNoteTrigger: null,
+                midiPcTrigger: null
+            };
+            
+            // Sicherheitshalber prüfen, ob das alte Preset das Limit des neuen Geräts überschreitet
+            if (existing.preset > maxPresetLimit) existing.preset = maxPresetLimit;
+            
+            footSwitchesConfig.push(existing);
+
+            // Ermitteln, was als Trigger-Text angezeigt werden soll (CC, Note oder PC)
+            let triggerText = 'None';
+            if (existing.midiCcTrigger !== null) {
+                // Wenn im alten Code z.B. "PC#5" oder "Note#60" als String gespeichert wurde
+                triggerText = typeof existing.midiCcTrigger === 'string' ? existing.midiCcTrigger : 'CC#' + existing.midiCcTrigger;
+            }
+
+            let card = document.createElement('div');
+            card.className = 'foot-switch-card';
+            if (activePresetIndex === i) card.classList.add('active-preset');
+            card.id = `switch_card_${i}`;
+
+            card.innerHTML = `
+                <div class="foot-switch-header">
+                    <span>#${i + 1} <input type="text" value="${existing.label}" onchange="updateLabel(${i}, this.value)" style="width:100px; padding:2px 5px;"></span>
+                    <button class="secondary" onclick="startMidiLearn(${i})" style="font-size:0.7rem; padding:4px 8px;">MIDI Learn</button>
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">
+                    Target Patch (0-${maxPresetLimit}): <input type="number" class="preset-input" min="0" max="${maxPresetLimit}" value="${existing.preset}" onchange="updatePreset(${i}, this.value)" style="width:60px;">
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted);" id="learn_info_${i}">
+                    Trigger: ${triggerText}
+                </div>
+                <button class="big-trigger-btn" onclick="triggerFootSwitch(${i})">Send (${existing.preset})</button>
+            `;
+            container.appendChild(card);
+        }
+    }
+    function updateLabel(index, val) { footSwitchesConfig[index].label = val; }
+    function updatePreset(index, val) {
+        let p = parseInt(val);
+        if (isNaN(p)) p = 0;
+        if (p < 0) p = 0; 
+        if (p > maxPresetLimit) p = maxPresetLimit; // Dynamisches Limit statt fixer 99
+        
+        footSwitchesConfig[index].preset = p;
+        document.querySelectorAll('.big-trigger-btn')[index].innerText = `Send (${p})`;
+    }
+
+    function triggerFootSwitch(index) {
+        if (!selectedOutputDevice) {
+            alert("No MIDI output connected!");
+            return;
+        }
+        let cfg = footSwitchesConfig[index];
+        const midiMessage = [0xB0, 0x00, cfg.preset];
+        try {
+            selectedOutputDevice.send(midiMessage);
+            logToUI(`[GP-5 Patch] sent -> Patch #${cfg.preset}`);
+            activePresetIndex = index;
+            document.querySelectorAll('.foot-switch-card').forEach((card, idx) => {
+                if (idx === index) card.classList.add('active-preset');
+                else card.classList.remove('active-preset');
+            });
+        } catch (err) {
+            logToUI("Send error: " + err);
+        }
+    }
+
+    function startMidiLearn(index) {
+        if (!selectedInputDevice) { alert("Please connect MIDI input first!"); return; }
+        activeLearningIndex = index;
+        document.querySelectorAll('.foot-switch-card').forEach((c, idx) => {
+            c.classList.remove('learning');
+            if (idx === index) c.classList.add('learning');
+        });
+        logToUI(`MIDI Learn active for Patch Switch #${index + 1}...`);
+    }
+
+    // --- 1. Variablen (oben zu deinen anderen configs hinzufügen) ---
+    let expressionPedalsConfig = [
+        { label: "Expression Pedal A", midiCc: null },
+        { label: "Expression Pedal B", midiCc: null }
+    ];
+    let activePedalLearningIndex = null;
+
+    // --- 2. Die Lern-Funktion ---
+    function startPedalMidiLearn(index) {
+        activePedalLearningIndex = index;
+        logToUI(`Bewegen Sie Pedal #${index + 1} zum Einlernen...`);
+        // Optional: UI-Feedback geben
+        document.getElementById(`pedal_learn_info_${index}`).innerText = "Bewegung erkannt...";
+    }
+
+    // --- 3. Die Generator-Funktion (zum Anzeigen in der UI) ---
+    function generatePedalUI() {
+        const container = document.getElementById('pedalGridContainer');
+        container.innerHTML = ""; 
+
+        expressionPedalsConfig.forEach((p, i) => {
+            let card = document.createElement('div');
+            card.className = 'foot-switch-card'; // Nutzt das gleiche Styling wie die Taster
+            card.innerHTML = `
+                <div class="foot-switch-header">
+                    <span>${p.label}</span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted); margin: 10px 0;" id="pedal_learn_info_${i}">
+                    Trigger: ${p.midiCc !== null ? 'CC#' + p.midiCc : 'None'}
+                </div>
+                <button class="secondary" onclick="startPedalMidiLearn(${i})">MIDI Learn Pedal</button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+/* ==========================================
+        GROOVE SWITCHES LOGIC (5 SLOTS)
+        ========================================== */
+    function generateGrooveSwitches() {
+        const container = document.getElementById('grooveGridContainer');
+        container.innerHTML = "";
+
+        grooveSwitchesConfig.forEach((cfg, i) => {
+            let card = document.createElement('div');
+            card.className = 'groove-card';
+            if (activeGrooveIndex === i && isPlayingDrums) card.classList.add('active-groove');
+            card.id = `groove_card_${i}`;
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--text-muted);">
+                    <span>Groove #${i+1}</span>
+                    <button class="secondary" onclick="startGrooveLearn(${i})" style="font-size:0.65rem; padding:2px 6px;">MIDI Learn</button>
+                </div>
+                
+                <input type="text" value="${cfg.label}" onchange="updateGrooveLabel(${i}, this.value)" style="padding:4px; font-size:0.85rem;">
+                
+                <!-- Song-Part Zuordnung -->
+                <div style="font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:var(--text-muted);">Part:</span>
+                    <select onchange="updateGroovePart(${i}, this.value)" style="width:110px; padding:3px; font-size:0.8rem;">
+                        <option value="intro" ${cfg.part === 'intro' ? 'selected' : ''}>Intro</option>
+                        <option value="verse" ${cfg.part === 'verse' ? 'selected' : ''}>Verse</option>
+                        <option value="break" ${cfg.part === 'break' ? 'selected' : ''}>Break</option>
+                        <option value="chorus" ${cfg.part === 'chorus' ? 'selected' : ''}>Chorus</option>
+                    </select>
+                </div>
+
+                <!-- Groove Style Dropdown -->
+                <select onchange="updateGrooveStyle(${i}, this.value)" style="padding:4px; font-size:0.85rem;">
+                    <option value="rock" ${cfg.style==='rock'?'selected':''}>Rock Beat</option>
+                    <option value="metal" ${cfg.style==='metal'?'selected':''}>Metal Double-Bass</option>
+                    <option value="pop" ${cfg.style==='pop'?'selected':''}>Pop Groove</option>
+                    <option value="punk" ${cfg.style==='punk'?'selected':''}>Punk Drive</option>
+                    <option value="blues" ${cfg.style==='blues'?'selected':''}>Blues Groove</option>
+                    <option value="shuffle" ${cfg.style==='shuffle'?'selected':''}>Blues Shuffle</option>
+                    <option value="funk" ${cfg.style==='funk'?'selected':''}>Funk Groove</option>
+                    <option value="ballad" ${cfg.style==='ballad'?'selected':''}>Ballad 6/8</option>
+                </select>
+                
+                <div style="font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span>BPM:</span>
+                    <input type="number" min="40" max="240" value="${cfg.bpm}" onchange="updateGrooveBpm(${i}, this.value)" style="width:65px; padding:3px;">
+                </div>
+                
+                <div style="font-size:0.7rem; color:var(--text-muted);" id="groove_learn_info_${i}">
+                    Trigger: ${cfg.midiCc !== null ? 'CC#' + cfg.midiCc : 'Keiner'}
+                </div>
+                
+                <button class="groove-trigger-btn" onclick="activateAndPlayGroove(${i})">${cfg.label}</button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function updateGrooveLabel(i, val) { 
+        grooveSwitchesConfig[i].label = val; 
+    }
+
+    function updateGrooveStyle(i, val) { 
+        grooveSwitchesConfig[i].style = val; 
+        if (activeGrooveIndex === i && isPlayingDrums) {
+            restartDrumLoop(); // Direkt aktualisieren, wenn dieser Groove gerade läuft
+        }
+    }
+
+    function updateGroovePart(index, partName) {
+        if (grooveSwitchesConfig[index]) {
+            grooveSwitchesConfig[index].part = partName;
+        }
+    }
+
+    function updateGrooveBpm(i, val) {
+        let b = parseInt(val);
+        if (isNaN(b)) b = 120;
+        grooveSwitchesConfig[i].bpm = b;
+        if (activeGrooveIndex === i && isPlayingDrums) {
+            currentBpm = b;
+            restartDrumLoop();
+        }
+    }
+
+    function startGrooveLearn(i) {
+        if (!selectedInputDevice) { alert("Bitte erst MIDI-Eingang verbinden!"); return; }
+        activeGrooveLearnIndex = i;
+        document.querySelectorAll('.groove-card').forEach((c, idx) => {
+            c.classList.remove('learning');
+            if (idx === i) c.classList.add('learning');
+        });
+        logToUI(`MIDI Learn aktiv für Groove Slot #${i+1}...`);
+    }
+
+    let activeGrooveIndex = 0;
+    let masterReverbNode = null;
+    let reverbGainNode = null;
+
+    function initReverb() {
+        if (!audioCtx) return;
+
+        masterReverbNode = audioCtx.createDelay(0.5);
+        masterReverbNode.delayTime.value = 0.25; 
+
+        let feedback = audioCtx.createGain();
+        feedback.gain.value = 0.4; 
+
+        let filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 3000; 
+
+        reverbGainNode = audioCtx.createGain();
+        reverbGainNode.gain.value = 0.6; 
+
+        masterReverbNode.connect(filter);
+        filter.connect(feedback);
+        feedback.connect(masterReverbNode);
+        masterReverbNode.connect(reverbGainNode);
+        reverbGainNode.connect(audioCtx.destination);
+        
+        logToUI("Hall-Engine: Plate-Delay-Reverb aktiv.");
+    }
+
+    function activateAndPlayGroove(i) {
+        activeGrooveIndex = i;
+        let cfg = grooveSwitchesConfig[i];
+        currentBpm = cfg.bpm;
+
+        // 1. Automatisch den Song-Part oben umschalten und farbig machen!
+        if (cfg.part) {
+            setSongPart(cfg.part);
+        }
+
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        if (!masterReverbNode) {
+            initReverb();
+        }
+
+        isPlayingDrums = true;
+        document.getElementById('masterDrumToggle').innerText = "Stop Groove";
+        document.getElementById('masterDrumToggle').classList.add('playing');
+
+        restartDrumLoop();
+        
+        document.querySelectorAll('.groove-card').forEach((card, idx) => {
+            if (idx === i) card.classList.add('active-groove');
+            else card.classList.remove('active-groove');
+        });
+
+        logToUI(`Groove gestartet: "${cfg.label}" (${cfg.style.toUpperCase()} @ ${cfg.bpm} BPM)`);
+    }
+
+    function toggleMasterDrum() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        isPlayingDrums = !isPlayingDrums;
+        const btn = document.getElementById('masterDrumToggle');
+        if (isPlayingDrums) {
+            btn.innerText = "Stop Groove";
+            btn.classList.add('playing');
+            activateAndPlayGroove(activeGrooveIndex);
+        } else {
+            btn.innerText = "Master Start / Stop Groove";
+            btn.classList.remove('playing');
+            clearInterval(drumTimer);
+            document.querySelectorAll('.groove-card').forEach(c => c.classList.remove('active-groove'));
+            logToUI("Master Groove gestoppt.");
+        }
+    }
+
+/* ==========================================
+        MIDI INCOMING PARSER & ROUTING (CC + NOTE ON + PC + PEDALS)
+        ========================================== */
+    function handleIncomingMIDIMessage(event) {
+        const [status, data1, data2] = event.data;
+        const command = status & 0xF0;
+        const channel = (status & 0x0F) + 1; // Zeigt den MIDI-Kanal von 1-16 an
+
+        // HIER ZUM TESTEN:
+        console.log(`MIDI empfangen -> Command: 0x${command.toString(16)}, Kanal: ${channel}, Data1: ${data1}, Data2: ${data2}`);
+        
+        const eventId = data1; // Entweder CC-Nummer oder Note-Nummer
+        const eventValue = data2; // Wert (CC-Wert oder Anschlagsdynamik/Velocity)
+
+        // 1. Control Change (CC) Befehle (z.B. Encoder, Fußschalter, Expression-Pedale)
+        if (command === 0xB0) {
+            
+            // Expression-Pedal MIDI Learn (CC)
+            if (typeof activePedalLearningIndex !== 'undefined' && activePedalLearningIndex !== null) {
+                let idx = activePedalLearningIndex;
+                expressionPedalsConfig[idx].midiCc = eventId;
+                document.getElementById(`pedal_learn_info_${idx}`).innerText = `Trigger: CC#${eventId}`;
+                // Falls du eine CSS-Klasse für die Pedal-Card hast, optional entfernen:
+                // document.querySelectorAll('.pedal-card')[idx].classList.remove('learning');
+                logToUI(`MIDI Learn erfolgreich für Expression-Pedal #${idx + 1} (CC#${eventId})`);
+                activePedalLearningIndex = null;
+                return;
+            }
+
+            // Patch MIDI Learn (CC)
+            if (activeLearningIndex !== null) {
+                let idx = activeLearningIndex;
+                footSwitchesConfig[idx].midiCcTrigger = eventId;
+                document.getElementById(`learn_info_${idx}`).innerText = `Trigger: CC#${eventId}`;
+                document.querySelectorAll('.foot-switch-card')[idx].classList.remove('learning');
+                logToUI(`MIDI Learn erfolgreich für Patch Taster #${idx + 1} (CC#${eventId})`);
+                activeLearningIndex = null;
+                return;
+            }
+
+            // Groove MIDI Learn (CC)
+            if (activeGrooveLearnIndex !== null) {
+                let idx = activeGrooveLearnIndex;
+                grooveSwitchesConfig[idx].midiCc = eventId;
+                document.getElementById(`groove_learn_info_${idx}`).innerText = `Trigger: CC#${eventId}`;
+                document.querySelectorAll('.groove-card')[idx].classList.remove('learning');
+                logToUI(`MIDI Learn erfolgreich für Groove Slot #${idx + 1} (CC#${eventId})`);
+                activeGrooveLearnIndex = null;
+                return;
+            }
+
+            // Song-Part MIDI Learn (CC)
+            if (activePartLearnName !== null) {
+                let pName = activePartLearnName;
+                localStorage.setItem(`gp5_part_cc_${pName}`, eventId);
+                logToUI(`MIDI Learn erfolgreich für Part "${pName.toUpperCase()}" (CC#${eventId})`);
+                document.querySelectorAll('.part-btn').forEach(btn => btn.classList.remove('learning-active'));
+                activePartLearnName = null;
+                return;
+            }
+
+            // Expression-Pedal Live-Werte an den GP-5 weiterleiten (Stufenlos 0-127)
+            if (typeof expressionPedalsConfig !== 'undefined') {
+                expressionPedalsConfig.forEach((pedal, idx) => {
+                    if (pedal.midiCc === eventId) {
+                        // Stufenlosen CC-Wert an den aktiven MIDI-Output (GP-5) senden
+                        sendMIDIMessage([0xB0 | (midiChannel - 1), eventId, eventValue]);
+                        
+                        // Falls du eine UI-Funktion hast, um den Wert/Slider am Bildschirm zu bewegen:
+                        if (typeof updatePedalUIValue === 'function') {
+                            updatePedalUIValue(idx, eventValue);
+                        }
+                    }
+                });
+            }
+
+            // Song-Part Trigger prüfen (CC)
+            ['intro', 'verse', 'break', 'chorus'].forEach(pName => {
+                let savedCc = localStorage.getItem(`gp5_part_cc_${pName}`);
+                if (savedCc !== null && parseInt(savedCc) === eventId && eventValue > 63) {
+                    setSongPart(pName);
+                }
+            });
+
+            // Patch Taster Trigger prüfen (CC)
+            footSwitchesConfig.forEach((cfg, idx) => {
+                if (cfg.midiCcTrigger === eventId && eventValue > 63) {
+                    triggerFootSwitch(idx);
+                }
+            });
+
+            // Groove Taster Trigger prüfen (CC)
+            grooveSwitchesConfig.forEach((cfg, idx) => {
+                if (cfg.midiCc === eventId && eventValue > 63) {
+                    activateAndPlayGroove(idx);
+                }
+            });
+        }
+
+        // 2. Note On Befehle (z.B. Keyboard-Tasten vom Arturia MiniLab oder Pads)
+        else if (command === 0x90 && eventValue > 0) {
+            
+            // Patch MIDI Learn (Note)
+            if (activeLearningIndex !== null) {
+                let idx = activeLearningIndex;
+                footSwitchesConfig[idx].midiCcTrigger = "Note#" + eventId; // Speichern als Note
+                footSwitchesConfig[idx].midiNoteTrigger = eventId; // Exakte Notennummer merken
+                document.getElementById(`learn_info_${idx}`).innerText = `Trigger: Note #${eventId}`;
+                document.querySelectorAll('.foot-switch-card')[idx].classList.remove('learning');
+                logToUI(`MIDI Learn erfolgreich für Patch Taster #${idx + 1} (Note #${eventId})`);
+                activeLearningIndex = null;
+                return;
+            }
+
+            // Patch Taster Trigger prüfen (Note)
+            footSwitchesConfig.forEach((cfg, idx) => {
+                if (cfg.midiNoteTrigger === eventId) {
+                    triggerFootSwitch(idx);
+                }
+            });
+        }
+
+        // 3. Program Change (PC) Befehle (z. B. vom Behringer FCB1010)
+        else if (command === 0xC0) {
+            const programNumber = data1; // Die Programmnummer (0-127)
+
+            // Patch MIDI Learn (PC)
+            if (activeLearningIndex !== null) {
+                let idx = activeLearningIndex;
+                footSwitchesConfig[idx].midiCcTrigger = "PC#" + programNumber; // Als Info speichern
+                footSwitchesConfig[idx].midiPcTrigger = programNumber; // Exakte PC-Nummer merken
+                document.getElementById(`learn_info_${idx}`).innerText = `Trigger: PC#${programNumber}`;
+                document.querySelectorAll('.foot-switch-card')[idx].classList.remove('learning');
+                logToUI(`MIDI Learn erfolgreich für Patch Taster #${idx + 1} (PC#${programNumber})`);
+                activeLearningIndex = null;
+                return;
+            }
+
+            // Patch Taster Trigger prüfen (PC)
+            footSwitchesConfig.forEach((cfg, idx) => {
+                if (cfg.midiPcTrigger === programNumber) {
+                    triggerFootSwitch(idx);
+                }
+            });
+        }
+    }
+
+/* ==========================================
+        STORAGE & SETS (GROOVES & PATCHES - DROPDOWN)
+        ========================================== */
+
+    // 1. Dropdown beim Start und nach Änderungen aktualisieren
+    function updateSetDropdown() {
+        const dropdown = document.getElementById('setSelectDropdown');
+        if (!dropdown) return;
+
+        const currentValue = dropdown.value;
+        dropdown.innerHTML = '<option value="">-- Select Gig Set --</option>';
+
+        let foundSets = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith('gp5_set_')) {
+                let setName = key.replace('gp5_set_', '');
+                foundSets.push(setName);
+            }
+        }
+
+        foundSets.sort();
+
+        foundSets.forEach(setName => {
+            let opt = document.createElement('option');
+            opt.value = setName;
+            opt.textContent = setName;
+            dropdown.appendChild(opt);
+        });
+
+        if (foundSets.includes(currentValue)) {
+            dropdown.value = currentValue;
+        }
+    }
+
+    // 2. Neues Set über einen Prompt/Dialog speichern
+    function saveNewSetPrompt() {
+        let currentDropdownVal = document.getElementById('setSelectDropdown').value;
+        let setName = prompt("Gib einen Namen für das Patch-Set ein:", currentDropdownVal || "Mein Gig");
+        
+        if (!setName || setName.trim() === "") return;
+        setName = setName.trim();
+
+        const gigData = {
+            setName: setName,
+            buttonCount: document.getElementById('buttonCountSelect').value,
+            footSwitches: footSwitchesConfig,
+            expressionPedals: expressionPedalsConfig
+        };
+
+        localStorage.setItem(`gp5_set_${setName}`, JSON.stringify(gigData));
+        localStorage.setItem('gp5_last_active_set', JSON.stringify(gigData));
+
+        updateSetDropdown();
+        document.getElementById('setSelectDropdown').value = setName;
+
+        logToUI(`Patch-Set "${setName}" (inkl. Pedalen) erfolgreich gespeichert.`);
+        alert(`Patch-Set "${setName}" erfolgreich gespeichert!`);
+    }
+
+    // 3. Set direkt über das Dropdown laden
+    function loadSelectedSetFromDropdown() {
+        const dropdown = document.getElementById('setSelectDropdown');
+        const setName = dropdown.value;
+        if (!setName) return;
+
+        let raw = localStorage.getItem(`gp5_set_${setName}`);
+        if (!raw) {
+            alert(`Set "${setName}" nicht gefunden.`);
+            return;
+        }
+
+        applyGigData(JSON.parse(raw));
+        logToUI(`Patch-Set "${setName}" aus Dropdown geladen.`);
+    }
+
+    // 4. Ausgewähltes Set löschen
+    function deleteSelectedSet() {
+        const dropdown = document.getElementById('setSelectDropdown');
+        const setName = dropdown.value;
+        if (!setName) {
+            alert("Bitte wähle zuerst ein Set aus dem Dropdown aus, das du löschen möchtest.");
+            return;
+        }
+
+        if (confirm(`Möchtest du das Set "${setName}" wirklich löschen?`)) {
+            localStorage.removeItem(`gp5_set_${setName}`);
+            updateSetDropdown();
+            logToUI(`Patch-Set "${setName}" gelöscht.`);
+            alert(`Set "${setName}" wurde gelöscht.`);
+        }
+    }
+
+    // 5. Hilfsfunktion, die die Daten sauber ins UI und in die Variablen schreibt
+    function applyGigData(p) {
+        if (p.buttonCount) {
+            document.getElementById('buttonCountSelect').value = p.buttonCount;
+        }
+        if (p.footSwitches) {
+            footSwitchesConfig = p.footSwitches;
+        }
+        if (p.expressionPedals) {
+            expressionPedalsConfig = p.expressionPedals;
+        }
+
+        const dropdown = document.getElementById('setSelectDropdown');
+        if (dropdown && p.setName) {
+            dropdown.value = p.setName;
+        }
+
+        // Alles frisch im Browser zeichnen lassen
+        generateFootSwitches();
+        if (typeof generatePedalUI === 'function') {
+            generatePedalUI();
+        }
+
+        // Als letztes aktives Set sichern
+        localStorage.setItem('gp5_last_active_set', JSON.stringify(p));
+    }
+
+    // 6. Beim Start der App automatisch das letzte Setup laden & Dropdown füllen
+    function autoLoadLastSet() {
+        updateSetDropdown(); // Dropdown-Inhalt generieren
+        
+        let raw = localStorage.getItem('gp5_last_active_set');
+        if (raw) {
+            try {
+                applyGigData(JSON.parse(raw));
+                console.log("Letztes Setup automatisch wiederhergestellt.");
+            } catch (err) {
+                console.error("Fehler beim Auto-Load:", err);
+            }
+        } else {
+            // Fallback beim allerersten Start
+            generateFootSwitches();
+            if (typeof generatePedalUI === 'function') {
+                generatePedalUI();
+            }
+        }
+    }
+
+    // Sofort beim Laden ausführen
+    autoLoadLastSet();
+
+    // Groove-Funktionen (bleiben unangetastet erhalten)
+    function saveGrooveSet() {
+        let setName = document.getElementById('grooveSetNameInput').value.trim() || "Groove Set 1";
+        localStorage.setItem(`gp5_grooves_${setName}`, JSON.stringify(grooveSwitchesConfig));
+        logToUI(`Groove-Set "${setName}" gespeichert.`);
+        alert(`Groove-Set "${setName}" gespeichert!`);
+    }
+
+    function loadGrooveSet() {
+        let setName = document.getElementById('grooveSetNameInput').value.trim() || "Groove Set 1";
+        let raw = localStorage.getItem(`gp5_grooves_${setName}`);
+        if (!raw) { alert("Groove-Set nicht gefunden."); return; }
+        grooveSwitchesConfig = JSON.parse(raw);
+        generateGrooveSwitches();
+        logToUI(`Groove-Set "${setName}" geladen.`);
+    }
+
+    let loadedSetNamesIndex = 0;
+    function nextGrooveSet() {
+        // Simuliert schnelles Durchschalten von lokal gespeicherten Groove-Sets
+        let keys = Object.keys(localStorage).filter(k => k.startsWith('gp5_grooves_'));
+        if (keys.length === 0) { alert("Keine Groove-Sets gespeichert!"); return; }
+        loadedSetNamesIndex = (loadedSetNamesIndex + 1) % keys.length;
+        let name = keys[loadedSetNamesIndex].replace('gp5_grooves_', '');
+        document.getElementById('grooveSetNameInput').value = name;
+        loadGrooveSet();
+    }
+
+    function prevGrooveSet() {
+        let keys = Object.keys(localStorage).filter(k => k.startsWith('gp5_grooves_'));
+        if (keys.length === 0) { alert("Keine Groove-Sets gespeichert!"); return; }
+        loadedSetNamesIndex = (loadedSetNamesIndex - 1 + keys.length) % keys.length;
+        let name = keys[loadedSetNamesIndex].replace('gp5_grooves_', '');
+        document.getElementById('grooveSetNameInput').value = name;
+        loadGrooveSet();
+    }
+
+/* ==========================================
+   DRUM ENGINE (WEB AUDIO SYNTHESIZER - HIGH PRECISION LOOKAHEAD)
+   ========================================== */
+   let audioCtx = null;
+   let isPlayingDrums = false;
+   let currentBpm = 95; // Standard auf 95 BPM gesetzt
+   let currentSongPart = 'intro'; // Standard Song-Part
+   
+   let nextNoteTime = 0.0;
+   let currentStep16th = 0;
+   let timerWorkerId = null;
+   let lookahead = 25.0; // Millisekunden
+   let scheduleAheadTime = 0.1; // Sekunden
+
+   // (Die doppelte Deklaration von grooveSwitchesConfig wurde hier entfernt)
+
+    function setSongPart(part) {
+        currentSongPart = part;
+        document.querySelectorAll('.part-btn').forEach(btn => btn.classList.remove('active-part', 'learning-active'));
+        
+        // Finde den Button des aktuellen Parts und aktiviere ihn optisch
+        const activeBtn = document.getElementById(`part_btn_${part}`);
+        if (activeBtn) activeBtn.classList.add('active-part');
+
+        document.getElementById('currentPartDisplay').innerText = `Part: ${part.toUpperCase()}`;
+        logToUI(`Song-Part gewechselt zu: ${part.toUpperCase()}`);
+    }
+
+    function startPartLearn(partName) {
+        if (!selectedInputDevice) { alert("Bitte erst MIDI-Eingang verbinden!"); return; }
+        activePartLearnName = partName;
+        
+        document.querySelectorAll('.part-btn').forEach(btn => btn.classList.remove('learning-active'));
+        const btn = document.getElementById(`part_btn_${partName}`);
+        if (btn) btn.classList.add('learning-active');
+
+        logToUI(`MIDI Learn aktiv für Song-Part: ${partName.toUpperCase()}... Drücke einen Controller-Taster.`);
+    }
+
+function activateAndPlayGroove(i) {
+        activeGrooveIndex = i;
+        let cfg = grooveSwitchesConfig[i];
+        
+        // 1. Hole den Part und Style DIREKT aus dem DOM der aktuellen Karte (falls frisch geändert)
+        let cardElement = document.getElementById(`groove_card_${i}`);
+        if (cardElement) {
+            let partSelect = cardElement.querySelectorAll('select')[0]; // Das Part-Dropdown
+            let styleSelect = cardElement.querySelectorAll('select')[1]; // Das Style-Dropdown
+            
+            if (partSelect) {
+                cfg.part = partSelect.value;
+            }
+            if (styleSelect) {
+                cfg.style = styleSelect.value;
+            }
+        }
+
+        currentBpm = cfg.bpm;
+
+        // 2. Oben sofort den Part aktivieren und lila färben!
+        if (cfg.part) {
+            setSongPart(cfg.part);
+        }
+
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        isPlayingDrums = true;
+        document.getElementById('masterDrumToggle').innerText = "Stop Groove";
+        document.getElementById('masterDrumToggle').classList.add('playing');
+
+        // Clock starten falls noch nicht aktiv
+        if (!timerWorkerId) {
+            currentStep16th = 0;
+            nextNoteTime = audioCtx.currentTime + 0.05;
+            timerWorkerId = setInterval(scheduler, lookahead);
+        }
+        
+        document.querySelectorAll('.groove-card').forEach((card, idx) => {
+            if (idx === i) card.classList.add('active-groove');
+            else card.classList.remove('active-groove');
+        });
+
+        logToUI(`Groove gestartet: "${cfg.label}" (${cfg.style.toUpperCase()} @ ${currentBpm} BPM, Part: ${cfg.part.toUpperCase()})`);
+    }
+
+    function toggleMasterDrum() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        isPlayingDrums = !isPlayingDrums;
+        const btn = document.getElementById('masterDrumToggle');
+        
+        if (isPlayingDrums) {
+            btn.innerText = "Stop Groove";
+            btn.classList.add('playing');
+            currentStep16th = 0;
+            nextNoteTime = audioCtx.currentTime + 0.05;
+            if (!timerWorkerId) {
+                timerWorkerId = setInterval(scheduler, lookahead);
+            }
+            logToUI("Master Groove gestartet.");
+        } else {
+            btn.innerText = "Master Start / Stop Groove";
+            btn.classList.remove('playing');
+            clearInterval(timerWorkerId);
+            timerWorkerId = null;
+            document.querySelectorAll('.groove-card').forEach(c => c.classList.remove('active-groove'));
+            logToUI("Master Groove gestoppt.");
+        }
+    }
+
+    function restartDrumLoop() {
+        // Wird aufgerufen, wenn sich die BPM ändert
+        // Die Scheduler-Schleife passt sich automatisch über currentBpm an
+        logToUI(`Tempo angepasst auf: ${currentBpm} BPM`);
+    }
+
+    function scheduler() {
+        if (!isPlayingDrums) return;
+        while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+            scheduleNote(currentStep16th, nextNoteTime);
+            nextStep();
+        }
+    }
+
+    function nextStep() {
+        let secondsPerBeat = 60.0 / currentBpm;
+        nextNoteTime += 0.25 * secondsPerBeat; // 16tel Noten Raster
+        currentStep16th = (currentStep16th + 1) % 64; // 4 Takte Master-Zyklus für strukturierte Parts
+    }
+
+    function scheduleNote(stepIndex, time) {
+        let style = grooveSwitchesConfig[activeGrooveIndex].style;
+        let currentStyle = grooveSwitchesConfig[activeGrooveIndex].style;
+        let barStep = stepIndex % 16; // 16 Steps pro Takt
+
+        // Song-Struktur Belegung definieren (Intro, Verse, Break, Chorus)
+        // Wir steuern Variationen über den aktuellen Song-Part
+        let activePattern = getPatternForPart(style, currentSongPart, barStep, Math.floor(stepIndex / 16));
+
+        if (activePattern.kick) playKickAtTime(time);
+        if (activePattern.snare) playSnareAtTime(time);
+        if (activePattern.hihat) playHiHatAtTime(time, activePattern.openHihat);
+    }
+
+    function getPatternForPart(style, part, step, bar) {
+        // Basis-Muster für verschiedene Stile und Songteile
+        let baseKicks = {
+            rock:  [1, 0, 0, 0,  0, 0, 1, 0,  1, 0, 0, 0,  0, 0, 1, 0],
+            metal: [1, 0, 1, 0,  1, 0, 1, 0,  1, 0, 1, 0,  1, 0, 1, 0],
+            pop:   [1, 0, 0, 0,  0, 0, 1, 0,  1, 0, 0, 0,  0, 0, 0, 0],
+            punk:  [1, 0, 0, 0,  1, 0, 0, 0,  1, 0, 0, 0,  1, 0, 0, 0],
+            blues: [1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0],
+            shuffle:[1, 0, 0, 1,  0, 0, 1, 0,  0, 1, 0, 0,  1, 0, 0, 0],
+            funk:  [1, 0, 0, 1,  0, 0, 1, 0,  0, 1, 0, 0,  1, 0, 0, 0],
+            ballad:[1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0]
+        };
+
+        let baseSnares = {
+            rock:  [0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0],
+            metal: [0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 1],
+            pop:   [0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 1, 0],
+            punk:  [0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0],
+            blues: [0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0],
+            shuffle:[0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 0],
+            funk:  [0, 0, 0, 0,  1, 0, 0, 1,  0, 0, 1, 0,  1, 0, 0, 1],
+            ballad:[0, 0, 0, 0,  0, 0, 1, 0,  0, 0, 0, 0,  0, 0, 1, 0]
+        };
+
+        let kick = baseKicks[style][step] === 1;
+        let snare = baseSnares[style][step] === 1;
+        let hihat = (step % 2 === 0); // Standard Achtel-Hihat
+        let openHihat = false;
+
+        // Anpassungen je nach Song-Part
+        if (part === 'intro') {
+            // Im Intro weniger Kick, nur dezente Hihats oder reduzierter Beat
+            if (step > 8 && style === 'rock') kick = false;
+            if (step % 4 !== 0) hihat = false; // Nur Viertel im Intro
+        } else if (part === 'break') {
+            // Im Break: Nur Tom/Snare-Wirbel oder minimalistischer Takt mit Betonung am Ende
+            kick = (step === 0 || step === 12);
+            snare = (step === 4 || step === 8 || step >= 12); // Fill am Ende des Takts
+            hihat = false;
+        } else if (part === 'chorus') {
+            // Im Chorus: Voller Druck, treibende Hihats (16tel) und zusätzlicher Crash-Effekt auf Schlag 1
+            hihat = true;
+            if (step === 0) kick = true; // Extra Wumms im Chorus
+        }
+
+        return { kick, snare, hihat, openHihat };
+    }
+
+    // Synthesizer Audio-Funktionen mit exaktem Zeitstempel (Jitter-frei)
+    function playKickAtTime(t) {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(150, t);
+        osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.15);
+        gain.gain.setValueAtTime(1, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.15);
+    }
+
+    function playSnareAtTime(t) {
+        let bufferSize = audioCtx.sampleRate * 0.1;
+        let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        let output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+        let whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = buffer;
+        let filter = audioCtx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.value = 800;
+
+        let gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.7, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+        whiteNoise.connect(filter);
+        filter.connect(gain);
+        
+        // 1. Normaler Weg zum Lautsprecher (Dry)
+        gain.connect(audioCtx.destination);
+
+        // 2. Direkter Weg in das neue Hall-Delay-Netzwerk (Wet)
+        if (typeof masterReverbNode !== 'undefined' && masterReverbNode !== null) {
+            let reverbSend = audioCtx.createGain();
+            reverbSend.gain.value = 0.8; // Send-Anteil für den Hall
+            gain.connect(reverbSend);
+            reverbSend.connect(masterReverbNode);
+        }
+
+        whiteNoise.start(t);
+    }
+
+    function playHiHatAtTime(t, isOpen = false) {
+        let dur = isOpen ? 0.15 : 0.04;
+        let bufferSize = audioCtx.sampleRate * dur;
+        let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        let output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+        let noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        let filter = audioCtx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.value = 5000;
+
+        let gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(isOpen ? 0.4 : 0.25, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        noise.start(t);
+    }
+
+    function toggleGrooveSection() {
+        const content = document.getElementById('grooveSectionContent');
+        const icon = document.getElementById('grooveToggleIcon');
+        
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            content.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+</script>
+
+</body>
+</html>
